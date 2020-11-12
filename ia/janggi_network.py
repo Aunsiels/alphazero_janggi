@@ -1,3 +1,4 @@
+import torch
 from torch import nn
 
 from janggi.utils import BOARD_HEIGHT, BOARD_WIDTH
@@ -117,3 +118,14 @@ class ResidualBlock(nn.Module):
         x += x2
         x = self.second_relu(x)
         return x
+
+
+class JanggiLoss(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, output, target):
+        policy_found = target[0].view(-1)
+        policy_guessed = output[0].view(-1)
+        return (output[1] - target[1]) ** 2 - torch.dot(policy_found, torch.log(policy_guessed))
