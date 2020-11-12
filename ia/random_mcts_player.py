@@ -39,11 +39,18 @@ class RandomMCTSPlayer(Player):
         return {action: 1 / len(actions) for action in actions}, diff_score
 
 
+if torch.cuda.is_available():
+  dev = "cuda:0"
+else:
+  dev = "cpu"
+device = torch.device(dev)
+
+
 class NNPlayer(RandomMCTSPlayer):
 
     def __init__(self, color, c_puct=4, n_simulations=800, janggi_net=JanggiNetwork()):
         super().__init__(color, c_puct, n_simulations)
-        self.janggi_net = janggi_net
+        self.janggi_net = janggi_net.to(device)
 
     def predict(self):
         actions = self.game.get_current_actions()

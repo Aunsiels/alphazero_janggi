@@ -5,6 +5,13 @@ from janggi.piece import Soldier, Cannon, General, Chariot, Elephant, Horse, Gua
 from janggi.utils import BOARD_HEIGHT, BOARD_WIDTH, Color
 
 
+if torch.cuda.is_available():
+  dev = "cuda:0"
+else:
+  dev = "cpu"
+device = torch.device(dev)
+
+
 class Board:
 
     def __init__(self):
@@ -247,6 +254,7 @@ class Board:
         if color == Color.RED:
             features[0, 7 * 2, :, :] = 1
         features[0, 7 * 2 + 1, :, :] = round
+        features = features.to(device)
         return features
 
 
