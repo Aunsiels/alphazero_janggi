@@ -89,6 +89,16 @@ class BoardTest(unittest.TestCase):
         self.board.board[8][4] = None
         self.assertEqual(len(self.board.board[7][3].get_actions()), 16)
 
+    def test_diagonal_chariot(self):
+        self.board.board[1][4] = Chariot(1, 4, Color.BLUE, self.board)
+        self.board.board[0][3] = None
+        self.board.board[0][5] = None
+        self.board._initialise_pieces_per_color()
+        actions = self.board.board[1][4].get_actions()
+        print(self.board)
+        print(actions)
+        self.assertEqual(len(actions), 14)
+
     def test_action_elephant(self):
         self.assertEqual(len(self.board.board[0][1].get_actions()), 1)
         self.board.board[0][1] = None

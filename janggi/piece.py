@@ -234,6 +234,14 @@ class Chariot(Piece):
                     arrival_is_legal = (arrival_is_free or can_eat_arrival)
                     if arrival_is_legal:
                         actions.append(Action(self.x, self.y, diff_center_x, diff_center_y))
+        if self.x == center_x and self.y == center_y:
+            for x_diff in [-1, 1]:
+                for y_diff in [-1, 1]:
+                    new_x = center_x + x_diff
+                    new_y = center_y + y_diff
+                    value = self.board.board[new_x][new_y]
+                    if value is None or value.color != self.color:
+                        actions.append(Action(self.x, self.y, new_x, new_y))
 
 
 class Elephant(Piece):
