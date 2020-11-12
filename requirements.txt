@@ -1,0 +1,5 @@
+pytest
+pytest-cov
+pytest-profiling
+numpy==1.19.3
+torch
