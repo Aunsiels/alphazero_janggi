@@ -27,89 +27,87 @@ class Action(object):
             and self.x_to == other.x_to and self.y_to == other.y_to
 
     def get_features(self):
-        features_temp = np.zeros(58)
         if self.y_from == self.y_to:
             # Vertical move
             if self.x_to > self.x_from:
                 # North move
-                features_temp[self.x_to - self.x_from - 1] = 1
+                return self.x_to - self.x_from - 1
             else:
                 # South move
-                features_temp[self.x_from - self.x_to + 8] = 1
+                return self.x_from - self.x_to + 8
         elif self.x_from == self.x_to:
             # Horizontal move
             if self.y_to > self.y_from:
                 # East move
-                features_temp[self.y_to - self.y_from + 17] = 1
+                return self.y_to - self.y_from + 17
             else:
                 # West move
-                features_temp[self.y_from - self.y_to + 25] = 1
+                return self.y_from - self.y_to + 25
         elif self.y_to - self.y_from == 1:
             # Short Diagonal East
             if self.x_to - self.x_from == 1:
-                features_temp[34] = 1
+                return 34
             elif self.x_to - self.x_from == -1:
-                features_temp[35] = 1
+                return 35
             # Horse Vertical East
             elif self.x_to > self.x_from:
-                features_temp[42] = 1
+                return 42
             else:
-                features_temp[43] = 1
+                return 43
         elif self.y_to - self.y_from == -1:
             # Short Diagonal West
             if self.x_to - self.x_from == 1:
-                features_temp[36] = 1
+                return 36
             elif self.x_to - self.x_from == -1:
-                features_temp[37] = 1
+                return 37
             # Horse Vertical West
             elif self.x_to > self.x_from:
-                features_temp[44] = 1
+                return 44
             else:
-                features_temp[45] = 1
+                return 45
         elif self.x_to - self.x_from == 1:
             # Horse Horizontal North
             if self.y_to > self.y_from:
-                features_temp[46] = 1
+                return 46
             else:
-                features_temp[47] = 1
+                return 47
         elif self.x_to - self.x_from == -1:
             # Horse Horizontal South
             if self.y_to > self.y_from:
-                features_temp[48] = 1
+                return 48
             else:
-                features_temp[49] = 1
+                return 49
         elif self.y_to - self.y_from == 2:
             # Large Diagonal East
             if self.x_to - self.x_from == 2:
-                features_temp[38] = 1
+                return 38
             elif self.x_to - self.x_from == -2:
-                features_temp[39] = 1
+                return 39
             # Elephant Vertical East
             elif self.x_to > self.x_from:
-                features_temp[50] = 1
+                return 50
             else:
-                features_temp[51] = 1
+                return 51
         elif self.y_to - self.y_from == -2:
             # Large Diagonal West
             if self.x_to - self.x_from == 2:
-                features_temp[40] = 1
+                return 40
             elif self.x_to - self.x_from == -2:
-                features_temp[41] = 1
+                return 41
             # Elephant Vertical West
             elif self.x_to > self.x_from:
-                features_temp[52] = 1
+                return 52
             else:
-                features_temp[53] = 1
+                return 53
         elif self.x_to - self.x_from == 2:
             # Elephant Horizontal North
             if self.y_to > self.y_from:
-                features_temp[54] = 1
+                return 54
             else:
-                features_temp[55] = 1
+                return 55
         elif self.x_to - self.x_from == -2:
             # Horse Horizontal South
             if self.y_to > self.y_from:
-                features_temp[56] = 1
+                return 56
             else:
-                features_temp[57] = 1
-        return features_temp
+                return 57

@@ -107,7 +107,6 @@ class BoardTest(unittest.TestCase):
         self.board._current_action_cache_node = ActionCacheNode(None)
         self.board._initialise_pieces_per_color()
         actions = self.board.get_actions(Color.BLUE)
-        print(actions)
         self.assertEqual(len(actions), 4)
 
     def test_score(self):
@@ -137,8 +136,7 @@ class BoardTest(unittest.TestCase):
                     for action in self.board.board[x][y].get_actions():
                         if not no_sum:
                             f_temp = action.get_features()
-                            self.assertEqual(1, sum(f_temp))
-                            features += f_temp
+                            features[f_temp] += 1
                     self.board.board[x][y] = None
                     self._current_action_cache_node = ActionCacheNode(None)
         if not no_sum:

@@ -59,15 +59,14 @@ class NNPlayer(RandomMCTSPlayer):
             policy, value = self.janggi_net(features)
             actions_proba = dict()
             for action in actions:
-                actions_proba[action] = sum(policy[0, :, action.x_from, action.y_from] *
-                                            torch.from_numpy(action.get_features()).to(device)).detach().item()
+                actions_proba[action] = policy[0, action.get_features(), action.x_from, action.y_from].detach().item()
             value = value[0, 0].detach().item()
         return actions_proba, value
 
 
 def run_a_game():
     board = Board()
-    player_blue = NNPlayer(Color.BLUE, n_simulations=800)
+    player_blue = NNPlayer(Color.BLUE, n_simulations=100)
     player_red = RandomMCTSPlayer(Color.RED, n_simulations=800)
     game = Game(player_blue, player_red, board)
     winner = game.run_game(200)
