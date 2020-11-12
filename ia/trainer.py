@@ -71,8 +71,8 @@ class Trainer:
         return examples
 
     def learn_policy(self, n_iterations, n_episodes):
-        examples = []
         for _ in range(n_iterations):
+            examples = []
             for ep in range(n_episodes):
                 begin_time = time.time()
                 examples += self.run_episode()
@@ -88,7 +88,7 @@ class Trainer:
 
     def train(self, examples):
         criterion = JanggiLoss()
-        optimizer = torch.optim.SGD(self.predictor.parameters(), lr=0.02)
+        optimizer = torch.optim.SGD(self.predictor.parameters(), lr=0.02, momentum=0.9, weight_decay=0.0001)
         random.shuffle(examples)
 
         for epoch in range(2):
