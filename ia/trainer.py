@@ -1,4 +1,5 @@
 import os
+import random
 import time
 
 import torch
@@ -25,7 +26,9 @@ class Trainer:
 
     def run_episode(self):
         examples = []
-        board = Board()
+        start_blue = random.choice(["won", "sang", "yang", "gwee"])
+        start_red = random.choice(["won", "sang", "yang", "gwee"])
+        board = Board(start_blue=start_blue, start_red=start_red)
         initial_node = MCTSNode(is_initial=True)
         player_blue = NNPlayer(Color.BLUE, n_simulations=self.n_simulations,
                                current_node=initial_node,

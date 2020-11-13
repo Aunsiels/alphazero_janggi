@@ -14,10 +14,12 @@ device = torch.device(dev)
 
 class Board:
 
-    def __init__(self):
+    def __init__(self, start_blue="yang", start_red="yang"):
         self.board = [[None for _ in range(BOARD_WIDTH)] for _ in range(BOARD_HEIGHT)]
         self._blue_general = None
         self._red_general = None
+        self.start_blue = start_blue
+        self.start_red = start_red
         self._initialize_pieces()
         self._hash_cache = None
         self._str_cache = None
@@ -68,16 +70,42 @@ class Board:
         self.board[9][5] = Guard(9, 5, Color.RED, self)
 
     def _initialise_horses(self):
-        self.board[0][2] = Horse(0, 2, Color.BLUE, self)
-        self.board[0][6] = Horse(0, 6, Color.BLUE, self)
-        self.board[9][2] = Horse(9, 2, Color.RED, self)
-        self.board[9][6] = Horse(9, 6, Color.RED, self)
+        if self.start_blue == "won" or self.start_blue == "sang":
+            self.board[0][1] = Horse(0, 1, Color.BLUE, self)
+        else:
+            self.board[0][2] = Horse(0, 2, Color.BLUE, self)
+        if self.start_blue == "won" or self.start_blue == "gwee":
+            self.board[0][7] = Horse(0, 7, Color.BLUE, self)
+        else:
+            self.board[0][6] = Horse(0, 6, Color.BLUE, self)
+
+        if self.start_red == "won" or self.start_red == "sang":
+            self.board[9][1] = Horse(9, 1, Color.RED, self)
+        else:
+            self.board[9][2] = Horse(9, 2, Color.RED, self)
+        if self.start_red == "won" or self.start_red == "gwee":
+            self.board[9][7] = Horse(9, 7, Color.RED, self)
+        else:
+            self.board[9][6] = Horse(9, 6, Color.RED, self)
 
     def _initialise_elephants(self):
-        self.board[0][1] = Elephant(0, 1, Color.BLUE, self)
-        self.board[0][7] = Elephant(0, 7, Color.BLUE, self)
-        self.board[9][1] = Elephant(9, 1, Color.RED, self)
-        self.board[9][7] = Elephant(9, 7, Color.RED, self)
+        if self.start_blue == "won" or self.start_blue == "sang":
+            self.board[0][2] = Elephant(0, 2, Color.BLUE, self)
+        else:
+            self.board[0][1] = Elephant(0, 1, Color.BLUE, self)
+        if self.start_blue == "won" or self.start_blue == "gwee":
+            self.board[0][6] = Elephant(0, 6, Color.BLUE, self)
+        else:
+            self.board[0][7] = Elephant(0, 7, Color.BLUE, self)
+
+        if self.start_red == "won" or self.start_red == "sang":
+            self.board[9][2] = Elephant(9, 2, Color.RED, self)
+        else:
+            self.board[9][1] = Elephant(9, 1, Color.RED, self)
+        if self.start_red == "won" or self.start_red == "gwee":
+            self.board[9][6] = Elephant(9, 6, Color.RED, self)
+        else:
+            self.board[9][7] = Elephant(9, 7, Color.RED, self)
 
     def _initialize_chariots(self):
         self.board[0][0] = Chariot(0, 0, Color.BLUE, self)

@@ -95,18 +95,23 @@ class BoardTest(unittest.TestCase):
         self.board.board[0][5] = None
         self.board._initialise_pieces_per_color()
         actions = self.board.board[1][4].get_actions()
-        print(self.board)
-        print(actions)
         self.assertEqual(len(actions), 14)
 
     def test_action_elephant(self):
         self.assertEqual(len(self.board.board[0][1].get_actions()), 1)
+        self.assertEqual(len(self.board.board[0][7].get_actions()), 1)
+        self.assertEqual(len(self.board.board[9][1].get_actions()), 1)
+        self.assertEqual(len(self.board.board[9][7].get_actions()), 1)
+
         self.board.board[0][1] = None
         self.board.board[3][3] = Elephant(3, 3, Color.BLUE, self.board)
         self.assertEqual(len(self.board.board[3][3].get_actions()), 3)
 
     def test_action_horse(self):
         self.assertEqual(len(self.board.board[0][2].get_actions()), 1)
+        self.assertEqual(len(self.board.board[0][6].get_actions()), 1)
+        self.assertEqual(len(self.board.board[9][2].get_actions()), 1)
+        self.assertEqual(len(self.board.board[9][6].get_actions()), 1)
 
     def test_action_guards(self):
         self.assertEqual(len(self.board.board[0][3].get_actions()), 2)
@@ -131,10 +136,10 @@ class BoardTest(unittest.TestCase):
 
     def test_features(self):
         features = self.board.get_features(Color.BLUE, 10)
-        self.assertEqual(features.shape, (1, 16, 10, 9))
-        self.assertEqual(features[0, 0, 3, 0], 1)
-        self.assertEqual(features[0, 7, 6, 0], 1)
-        self.assertEqual(features[0, -1, 6, 0], 10)
+        self.assertEqual(features.shape, (16, 10, 9))
+        self.assertEqual(features[0, 3, 0], 1)
+        self.assertEqual(features[7, 6, 0], 1)
+        self.assertEqual(features[-1, 6, 0], 10)
 
     def test_action_features(self, no_sum=False):
         self.board.board = [[None for _ in range(BOARD_WIDTH)] for _ in range(BOARD_HEIGHT)]
@@ -155,6 +160,79 @@ class BoardTest(unittest.TestCase):
     def _test_perf(self):
         for _ in range(1000):
             self.test_action_features(no_sum=True)
+
+
+class TestBoardWon(BoardTest):
+
+    def setUp(self) -> None:
+        self.board = Board(start_blue="won", start_red="won")
+
+    def test_action_elephant(self):
+        self.assertEqual(len(self.board.board[0][2].get_actions()), 0)
+        self.assertEqual(len(self.board.board[0][6].get_actions()), 0)
+        self.assertEqual(len(self.board.board[9][2].get_actions()), 0)
+        self.assertEqual(len(self.board.board[9][6].get_actions()), 0)
+        self.board.board[0][1] = None
+        self.board.board[3][3] = Elephant(3, 3, Color.BLUE, self.board)
+        self.board.invalidate_action_cache()
+        self.assertEqual(len(self.board.board[3][3].get_actions()), 3)
+
+    def test_action_horse(self):
+        self.assertEqual(len(self.board.board[0][1].get_actions()), 2)
+        self.assertEqual(len(self.board.board[0][7].get_actions()), 2)
+        self.assertEqual(len(self.board.board[9][1].get_actions()), 2)
+        self.assertEqual(len(self.board.board[9][7].get_actions()), 2)
+
+    def test_get_all_actions(self):
+        self.assertEqual(len(self.board.get_actions(Color.BLUE)), 31)
+
+class TestBoardGwee(BoardTest):
+
+    def setUp(self) -> None:
+        self.board = Board(start_blue="gwee", start_red="gwee")
+
+    def test_action_elephant(self):
+        self.assertEqual(len(self.board.board[0][1].get_actions()), 1)
+        self.assertEqual(len(self.board.board[0][6].get_actions()), 0)
+        self.assertEqual(len(self.board.board[9][1].get_actions()), 1)
+        self.assertEqual(len(self.board.board[9][6].get_actions()), 0)
+        self.board.board[0][1] = None
+        self.board.board[3][3] = Elephant(3, 3, Color.BLUE, self.board)
+        self.board.invalidate_action_cache()
+        self.assertEqual(len(self.board.board[3][3].get_actions()), 3)
+
+    def test_action_horse(self):
+        self.assertEqual(len(self.board.board[0][2].get_actions()), 1)
+        self.assertEqual(len(self.board.board[0][7].get_actions()), 2)
+        self.assertEqual(len(self.board.board[9][2].get_actions()), 1)
+        self.assertEqual(len(self.board.board[9][7].get_actions()), 2)
+
+    def test_get_all_actions(self):
+        self.assertEqual(len(self.board.get_actions(Color.BLUE)), 31)
+
+class TestBoardSang(BoardTest):
+
+    def setUp(self) -> None:
+        self.board = Board(start_blue="sang", start_red="sang")
+
+    def test_action_elephant(self):
+        self.assertEqual(len(self.board.board[0][2].get_actions()), 0)
+        self.assertEqual(len(self.board.board[0][7].get_actions()), 1)
+        self.assertEqual(len(self.board.board[9][2].get_actions()), 0)
+        self.assertEqual(len(self.board.board[9][7].get_actions()), 1)
+        self.board.board[0][1] = None
+        self.board.board[3][3] = Elephant(3, 3, Color.BLUE, self.board)
+        self.board.invalidate_action_cache()
+        self.assertEqual(len(self.board.board[3][3].get_actions()), 3)
+
+    def test_action_horse(self):
+        self.assertEqual(len(self.board.board[0][1].get_actions()), 2)
+        self.assertEqual(len(self.board.board[0][6].get_actions()), 1)
+        self.assertEqual(len(self.board.board[9][1].get_actions()), 2)
+        self.assertEqual(len(self.board.board[9][6].get_actions()), 1)
+
+    def test_get_all_actions(self):
+        self.assertEqual(len(self.board.get_actions(Color.BLUE)), 31)
 
 
 if __name__ == '__main__':
