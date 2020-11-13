@@ -1,11 +1,13 @@
-import random
+import os
 import time
 
 import torch
+from torch.utils.data import Dataset, DataLoader
+from torch.utils.data.dataset import T_co
 
 from ia.janggi_network import JanggiLoss
 from ia.mcts import MCTSNode
-from ia.random_mcts_player import NNPlayer, play_againt_normal, fight, RandomMCTSPlayer
+from ia.random_mcts_player import NNPlayer, fight, RandomMCTSPlayer
 from janggi.board import Board
 from janggi.game import Game
 from janggi.utils import Color
@@ -18,6 +20,8 @@ class Trainer:
         self.n_simulations = n_simulations
         self.iter_max = iter_max
         self.n_simulations_opponent = n_simulation_opponent
+        self.model_saver = ModelSaver()
+        self.model_saver.load_latest_model(self.predictor)
 
     def run_episode(self):
         examples = []
@@ -77,7 +81,9 @@ class Trainer:
                 begin_time = time.time()
                 examples += self.run_episode()
                 print("Time Episode", ep, ": ", time.time() - begin_time)
+            self.model_saver.save_episodes(examples)
             self.train(examples)
+            self.model_saver.save_weights(self.predictor)
             player_red = RandomMCTSPlayer(Color.RED, n_simulations=self.n_simulations_opponent,
                                    temperature_start=0.01, temperature_threshold=30, temperature_end=0.01)
             player_blue = NNPlayer(Color.BLUE, n_simulations=self.n_simulations, janggi_net=self.predictor,
@@ -89,19 +95,77 @@ class Trainer:
     def train(self, examples):
         criterion = JanggiLoss()
         optimizer = torch.optim.SGD(self.predictor.parameters(), lr=0.02, momentum=0.9, weight_decay=0.0001)
-        random.shuffle(examples)
+        dataset = ExampleDataset(examples)
+        dataloader = DataLoader(dataset, batch_size=5,
+                                shuffle=True, num_workers=0)
 
         for epoch in range(2):
             running_loss = 0.0
-            for i, example in enumerate(examples):
+            for i, example in enumerate(dataloader):
                 board, actions, value = example
                 optimizer.zero_grad()
                 policy, value_predicted = self.predictor(board)
+                value_predicted = value_predicted.view(-1)
                 loss = criterion((policy, value_predicted), (actions, value))
                 loss.backward()
                 optimizer.step()
                 running_loss += loss.item()
-                if i%100 == 99:
+                if i%20 == 19:
                     print('[%d, %5d] loss: %.3f' %
-                          (epoch + 1, i + 1, running_loss / 100))
+                          (epoch + 1, i + 1, running_loss / 20))
                     running_loss = 0.0
+
+
+class ExampleDataset(Dataset):
+
+    def __getitem__(self, index) -> T_co:
+        return self.examples[index]
+
+    def __init__(self, examples):
+        self.examples = examples
+
+    def __len__(self):
+        return len(self.examples)
+
+
+class ModelSaver:
+
+    def __init__(self):
+        if not os.path.isdir("model"):
+            os.mkdir("model")
+        if not os.path.isdir("model/episodes"):
+            os.mkdir("model/episodes")
+        if not os.path.isdir("model/weights"):
+            os.mkdir("model/weights")
+        self.model_path = "model/"
+        self.episode_path = "model/episodes/"
+        self.weights_path = "model/weights/"
+
+    def get_last_episode_index(self):
+        maxi = -1
+        for filename in os.listdir(self.episode_path):
+            maxi = max(maxi, int(filename[len("episode_"):]))
+        return maxi
+
+    def get_last_weight_index(self):
+        maxi = -1
+        for filename in os.listdir(self.weights_path):
+            maxi = max(maxi, int(filename[len("weights_"):]))
+        return maxi
+
+    def save_episodes(self, episodes):
+        new_index = self.get_last_episode_index() + 1
+        torch.save(episodes, self.episode_path + "episode_" + str(new_index))
+
+    def save_weights(self, model):
+        new_index = self.get_last_weight_index() + 1
+        torch.save(model.state_dict(), self.weights_path + "weights_" + str(new_index))
+
+    def load_latest_model(self, model):
+        last_index = self.get_last_weight_index()
+        if last_index == -1:
+            return
+        model.load_state_dict(torch.load(self.weights_path + "weights_" + str(last_index)))
+        model.eval()
+        print("Model loaded")
+

@@ -15,11 +15,11 @@ N_RESIDUAL = 2
 
 class JanggiNetwork(nn.Module):
 
-    def __init__(self):
+    def __init__(self, n_residual=N_RESIDUAL):
         super().__init__()
 
         self.first_layer = FirstLayerJanggiNetwork()
-        self.residuals = nn.ModuleList([ResidualBlock() for _ in range(N_RESIDUAL)])
+        self.residuals = nn.ModuleList([ResidualBlock() for _ in range(n_residual)])
         self.policy_network = PolicyNetwork()
         self.value_network = ValueNetwork()
 
@@ -128,4 +128,4 @@ class JanggiLoss(nn.Module):
     def forward(self, output, target):
         policy_found = target[0].view(-1)
         policy_guessed = output[0].view(-1)
-        return (output[1] - target[1]) ** 2 - torch.dot(policy_found, torch.log(policy_guessed))
+        return sum((output[1] - target[1]) ** 2 - torch.dot(policy_found, torch.log(policy_guessed)))

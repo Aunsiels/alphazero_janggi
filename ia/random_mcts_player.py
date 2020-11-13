@@ -55,6 +55,7 @@ class NNPlayer(RandomMCTSPlayer):
     def predict(self):
         actions = self.game.get_current_actions()
         features = self.game.get_features()
+        features = torch.unsqueeze(features, 0)
         with torch.no_grad():
             policy, value = self.janggi_net(features)
             actions_proba = dict()

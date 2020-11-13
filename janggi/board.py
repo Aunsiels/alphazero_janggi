@@ -244,16 +244,16 @@ class Board:
     def get_features(self, color, round):
         reversed = color != Color.BLUE
         # 7 pieces, for two colors, + one plan color + one plan number played
-        features = torch.zeros((1, 7 * 2 + 2, BOARD_HEIGHT, BOARD_WIDTH))
+        features = torch.zeros((7 * 2 + 2, BOARD_HEIGHT, BOARD_WIDTH))
         for x in range(BOARD_HEIGHT):
             for y in range(BOARD_WIDTH):
                 current = self.get(x, y, reversed)
                 if current is None:
                     continue
-                features[0, current.get_index() + 7 * (current.color != color), x, y] = 1
+                features[current.get_index() + 7 * (current.color != color), x, y] = 1
         if color == Color.RED:
-            features[0, 7 * 2, :, :] = 1
-        features[0, 7 * 2 + 1, :, :] = round
+            features[7 * 2, :, :] = 1
+        features[7 * 2 + 1, :, :] = round
         features = features.to(device)
         return features
 

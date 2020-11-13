@@ -74,18 +74,21 @@ class MCTS:
             reward = game.get_reward()
             return -reward
 
+        possible_actions = game.get_current_actions()
         if current_node.probabilities is None:
             probabilities, predicted_value = predictor.predict()
-            current_node.set_up(probabilities, game.current_player, game.get_current_actions())
+            current_node.set_up(probabilities, game.current_player, possible_actions)
             return -predicted_value
 
         u_max, best_action = -float("inf"), None
-        for action in game.get_current_actions():
+        for action in possible_actions:
             u = current_node.q[action] + \
                 self.c_puct * current_node.probabilities[action] * \
                 math.sqrt(sum(current_node.N.values())) / (1 + current_node.N[action])
             if u > u_max:
                 u_max = u
+                best_action = action
+            elif np.isnan(u) and best_action is None:
                 best_action = action
         # Best action is None when there is no legal move
 
@@ -100,6 +103,7 @@ class MCTS:
         game.board.reverse_action(best_action)
         game.switch_player()
 
+        # Might be a problem if not enough simulations
         current_node.q[best_action] = (current_node.N[best_action] * current_node.q[best_action] + value) \
                                       / (current_node.N[best_action] + 1)
         current_node.N[best_action] += 1

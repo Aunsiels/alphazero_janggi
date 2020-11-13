@@ -17,8 +17,8 @@ class TestTrainer(unittest.TestCase):
             previous = example[2]
 
     def test_learn(self):
-        trainer = Trainer(JanggiNetwork(), n_simulations=30, iter_max=100, n_simulation_opponent=800)
-        trainer.learn_policy(n_iterations=10, n_episodes=10)
+        trainer = Trainer(JanggiNetwork(), n_simulations=30, iter_max=20, n_simulation_opponent=800)
+        trainer.learn_policy(n_iterations=1, n_episodes=1)
 
 
 if __name__ == '__main__':
