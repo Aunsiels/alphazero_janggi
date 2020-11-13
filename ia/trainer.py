@@ -14,6 +14,12 @@ from janggi.game import Game
 from janggi.utils import Color
 
 
+import multiprocessing as mp
+
+
+ASYNCHRONOUS = True
+
+
 class Trainer:
 
     def __init__(self, predictor, n_simulations=800, iter_max=200, n_simulation_opponent=800):
@@ -79,11 +85,16 @@ class Trainer:
 
     def learn_policy(self, n_iterations, n_episodes):
         for _ in range(n_iterations):
-            examples = []
-            for ep in range(n_episodes):
-                begin_time = time.time()
-                examples += self.run_episode()
-                print("Time Episode", ep, ": ", time.time() - begin_time)
+            if ASYNCHRONOUS:
+                with mp.Pool(3) as pool:
+                    episodes = pool.map(run_episode, [self] * n_episodes)
+                examples = [x for episode in episodes for x in episode ]
+            else:
+                examples = []
+                for ep in range(n_episodes):
+                    begin_time = time.time()
+                    examples += self.run_episode()
+                    print("Time Episode", ep, ": ", time.time() - begin_time)
             self.model_saver.save_episodes(examples)
             self.train(examples)
             self.model_saver.save_weights(self.predictor)
@@ -172,3 +183,10 @@ class ModelSaver:
         model.eval()
         print("Model loaded")
 
+
+def run_episode(trainer):
+    print("Start episode")
+    begin_time = time.time()
+    examples = trainer.run_episode()
+    print("Time Episode: ", time.time() - begin_time)
+    return examples

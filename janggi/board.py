@@ -158,6 +158,7 @@ class Board:
         return 0 <= x < BOARD_HEIGHT and 0 <= y < BOARD_WIDTH
 
     def get_actions(self, color, exclude_general=False):
+        # Check if in cache
         if color == Color.RED:
             if exclude_general and self._current_action_cache_node.next_actions_no_general_red is not None:
                 return self._current_action_cache_node.next_actions_no_general_red
@@ -171,12 +172,17 @@ class Board:
 
         if color == Color.BLUE:
             pieces = self._blue_pieces
+            general = self._blue_general
         else:
             pieces = self._red_pieces
+            general = self._red_general
         actions_list = []
-        for piece in pieces:
-            if piece.is_alive and (not exclude_general or not isinstance(piece, General)):
-                actions_list.append(piece.get_actions())
+        filtered_pieces = [piece for piece in pieces if piece.is_alive and not isinstance(piece, General)]
+
+        for piece in filtered_pieces:
+           actions_list.append(piece.get_actions())
+        if not exclude_general:
+            actions_list.append(general.get_actions())
         actions = itertools.chain(*actions_list)
         if not exclude_general:
             # Exclude actions creating a check
@@ -188,6 +194,7 @@ class Board:
                 self.reverse_action(action)
             actions = filtered_actions
 
+        # Put in cache
         if color == Color.RED:
             if exclude_general:
                 self._current_action_cache_node.next_actions_no_general_red = actions
@@ -284,6 +291,10 @@ class Board:
         features[7 * 2 + 1, :, :] = round
         features = features.to(device)
         return features
+
+
+def get_action_piece(piece):
+    return piece.get_actions()
 
 
 class ActionCacheNode:

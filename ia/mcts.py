@@ -88,8 +88,8 @@ class MCTS:
             if u > u_max:
                 u_max = u
                 best_action = action
-            elif np.isnan(u) and best_action is None:
-                best_action = action
+            # elif np.isnan(u) and best_action is None:
+            #     best_action = action
         # Best action is None when there is no legal move
 
         game.board.apply_action(best_action)
