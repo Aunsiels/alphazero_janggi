@@ -185,7 +185,7 @@ class ModelSaver:
 
 
 def run_episode(trainer):
-    print("Start episode")
+    print("Starting episode")
     begin_time = time.time()
     examples = trainer.run_episode()
     print("Time Episode: ", time.time() - begin_time)
