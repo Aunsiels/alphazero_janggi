@@ -204,6 +204,7 @@ class ModelSaver:
     def load_last_episode(self):
         last_index = self.get_last_weight_index()
         if last_index == -1:
+            print("No episode to load.")
             return None
         print("Load previous episode")
         return torch.load(self.episode_path + "episode_" + str(last_index))
