@@ -33,7 +33,7 @@ class Board:
         self._red_pieces = []
         for x in range(BOARD_HEIGHT):
             for y in range(BOARD_WIDTH):
-                value = self.board[x][y]
+                value = self.get(x, y)
                 if value is not None:
                     if value.color == Color.BLUE:
                         self._blue_pieces.append(value)
@@ -64,72 +64,72 @@ class Board:
         self._initialize_guards()
 
     def _initialize_guards(self):
-        self.board[0][3] = Guard(0, 3, Color.BLUE, self)
-        self.board[0][5] = Guard(0, 5, Color.BLUE, self)
-        self.board[9][3] = Guard(9, 3, Color.RED, self)
-        self.board[9][5] = Guard(9, 5, Color.RED, self)
+        self.set(0, 3, Guard(0, 3, Color.BLUE, self))
+        self.set(0, 5, Guard(0, 5, Color.BLUE, self))
+        self.set(9, 3, Guard(9, 3, Color.RED, self))
+        self.set(9, 5, Guard(9, 5, Color.RED, self))
 
     def _initialise_horses(self):
         if self.start_blue == "won" or self.start_blue == "sang":
-            self.board[0][1] = Horse(0, 1, Color.BLUE, self)
+            self.set(0, 1, Horse(0, 1, Color.BLUE, self))
         else:
-            self.board[0][2] = Horse(0, 2, Color.BLUE, self)
+            self.set(0, 2, Horse(0, 2, Color.BLUE, self))
         if self.start_blue == "won" or self.start_blue == "gwee":
-            self.board[0][7] = Horse(0, 7, Color.BLUE, self)
+            self.set(0, 7, Horse(0, 7, Color.BLUE, self))
         else:
-            self.board[0][6] = Horse(0, 6, Color.BLUE, self)
+            self.set(0, 6, Horse(0, 6, Color.BLUE, self))
 
         if self.start_red == "won" or self.start_red == "sang":
-            self.board[9][1] = Horse(9, 1, Color.RED, self)
+            self.set(9, 1, Horse(9, 1, Color.RED, self))
         else:
-            self.board[9][2] = Horse(9, 2, Color.RED, self)
+            self.set(9, 2, Horse(9, 2, Color.RED, self))
         if self.start_red == "won" or self.start_red == "gwee":
-            self.board[9][7] = Horse(9, 7, Color.RED, self)
+            self.set(9, 7, Horse(9, 7, Color.RED, self))
         else:
-            self.board[9][6] = Horse(9, 6, Color.RED, self)
+            self.set(9, 6, Horse(9, 6, Color.RED, self))
 
     def _initialise_elephants(self):
         if self.start_blue == "won" or self.start_blue == "sang":
-            self.board[0][2] = Elephant(0, 2, Color.BLUE, self)
+            self.set(0, 2, Elephant(0, 2, Color.BLUE, self))
         else:
-            self.board[0][1] = Elephant(0, 1, Color.BLUE, self)
+            self.set(0, 1, Elephant(0, 1, Color.BLUE, self))
         if self.start_blue == "won" or self.start_blue == "gwee":
-            self.board[0][6] = Elephant(0, 6, Color.BLUE, self)
+            self.set(0, 6, Elephant(0, 6, Color.BLUE, self))
         else:
-            self.board[0][7] = Elephant(0, 7, Color.BLUE, self)
+            self.set(0, 7, Elephant(0, 7, Color.BLUE, self))
 
         if self.start_red == "won" or self.start_red == "sang":
-            self.board[9][2] = Elephant(9, 2, Color.RED, self)
+            self.set(9, 2, Elephant(9, 2, Color.RED, self))
         else:
-            self.board[9][1] = Elephant(9, 1, Color.RED, self)
+            self.set(9, 1, Elephant(9, 1, Color.RED, self))
         if self.start_red == "won" or self.start_red == "gwee":
-            self.board[9][6] = Elephant(9, 6, Color.RED, self)
+            self.set(9, 6, Elephant(9, 6, Color.RED, self))
         else:
-            self.board[9][7] = Elephant(9, 7, Color.RED, self)
+            self.set(9, 7, Elephant(9, 7, Color.RED, self))
 
     def _initialize_chariots(self):
-        self.board[0][0] = Chariot(0, 0, Color.BLUE, self)
-        self.board[0][8] = Chariot(0, 8, Color.BLUE, self)
-        self.board[9][0] = Chariot(9, 0, Color.RED, self)
-        self.board[9][8] = Chariot(9, 8, Color.RED, self)
+        self.set(0, 0, Chariot(0, 0, Color.BLUE, self))
+        self.set(0, 8, Chariot(0, 8, Color.BLUE, self))
+        self.set(9, 0, Chariot(9, 0, Color.RED, self))
+        self.set(9, 8, Chariot(9, 8, Color.RED, self))
 
     def _initialize_general(self):
-        self.board[1][4] = General(1, 4, Color.BLUE, self)
-        self._blue_general = self.board[1][4]
-        self.board[8][4] = General(8, 4, Color.RED, self)
-        self._red_general = self.board[8][4]
+        self.set(1, 4, General(1, 4, Color.BLUE, self))
+        self._blue_general = self.get(1, 4)
+        self.set(8, 4, General(8, 4, Color.RED, self))
+        self._red_general = self.get(8, 4)
 
     def _initialize_cannons(self):
-        self.board[2][1] = Cannon(2, 1, Color.BLUE, self)
-        self.board[2][7] = Cannon(2, 7, Color.BLUE, self)
-        self.board[7][1] = Cannon(7, 1, Color.RED, self)
-        self.board[7][7] = Cannon(7, 7, Color.RED, self)
+        self.set(2, 1, Cannon(2, 1, Color.BLUE, self))
+        self.set(2, 7, Cannon(2, 7, Color.BLUE, self))
+        self.set(7, 1, Cannon(7, 1, Color.RED, self))
+        self.set(7, 7, Cannon(7, 7, Color.RED, self))
 
     def _initialize_soldiers(self):
         for y in range(0, BOARD_WIDTH, 2):
-            self.board[3][y] = Soldier(3, y, Color.BLUE, self)
+            self.set(3, y, Soldier(3, y, Color.BLUE, self))
         for y in range(0, BOARD_WIDTH, 2):
-            self.board[6][y] = Soldier(6, y, Color.RED, self)
+            self.set(6, y, Soldier(6, y, Color.RED, self))
 
     def __str__(self):
         if self._str_cache is None:
@@ -137,10 +137,10 @@ class Board:
             for x in range(BOARD_HEIGHT - 1, -1, -1):
                 to_print = []
                 for y in range(BOARD_WIDTH):
-                    if self.board[x][y] is None:
+                    if self.get(x, y) is None:
                         to_print.append(".")
                     else:
-                        to_print.append(str(self.board[x][y]))
+                        to_print.append(str(self.get(x, y)))
                 representation.append(" ".join(to_print))
             self._str_cache = "\n".join(representation) + "\n"
         return self._str_cache
@@ -234,14 +234,14 @@ class Board:
             # We do nothing
             return
 
-        piece_from = self.board[action.x_from][action.y_from]
+        piece_from = self.get(action.x_from, action.y_from)
         piece_from.x = action.x_to
         piece_from.y = action.y_to
-        action.eaten = self.board[action.x_to][action.y_to]
+        action.eaten = self.get(action.x_to, action.y_to)
         if action.eaten is not None:
             action.eaten.is_alive = False
-        self.board[action.x_to][action.y_to] = piece_from
-        self.board[action.x_from][action.y_from] = None
+        self.set(action.x_to, action.y_to, piece_from)
+        self.set(action.x_from, action.y_from, None)
 
     def reverse_action(self, action):
         self._invalidate_cache()
@@ -251,10 +251,10 @@ class Board:
             # We do nothing
             return
 
-        self.board[action.x_to][action.y_to].x = action.x_from
-        self.board[action.x_to][action.y_to].y = action.y_from
-        self.board[action.x_from][action.y_from] = self.board[action.x_to][action.y_to]
-        self.board[action.x_to][action.y_to] = action.eaten
+        self.get(action.x_to, action.y_to).x = action.x_from
+        self.get(action.x_to, action.y_to).y = action.y_from
+        self.set(action.x_from, action.y_from, self.get(action.x_to, action.y_to))
+        self.set(action.x_to, action.y_to, action.eaten)
         if action.eaten is not None:
             action.eaten.is_alive = True
         action.eaten = None
@@ -273,8 +273,13 @@ class Board:
 
     def get(self, x, y, reverse=False):
         if reverse:
-            return self.board[BOARD_HEIGHT - 1 - x][BOARD_WIDTH - 1 - y]
+            new_x = BOARD_HEIGHT - 1 - x
+            new_y = BOARD_WIDTH - 1 - y
+            return self.board[new_x][new_y]
         return self.board[x][y]
+
+    def set(self, x, y, new_value):
+        self.board[x][y] = new_value
 
     def get_features(self, color, round):
         reversed = color != Color.BLUE

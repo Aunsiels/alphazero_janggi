@@ -55,16 +55,19 @@ class Soldier(Piece):
     def get_actions(self):
         actions = []
         left = self.y - 1
-        value_column = self.board.board[self.x]
-        if 0 <= left and (value_column[left] is None or value_column[left].color != self.color):
-            actions.append(Action(self.x, self.y, self.x, left))
+        if 0 <= left:
+            value_left = self.board.get(self.x, left)
+            if value_left is None or value_left.color != self.color:
+                actions.append(Action(self.x, self.y, self.x, left))
         right = self.y + 1
-        if right < BOARD_WIDTH and (value_column[right] is None or value_column[right].color != self.color):
-            actions.append(Action(self.x, self.y, self.x, right))
+        if right < BOARD_WIDTH:
+            value_right = self.board.get(self.x, right)
+            if value_right is None or value_right.color != self.color:
+                actions.append(Action(self.x, self.y, self.x, right))
         top = self.x + self.color.value
         if 0 <= top < BOARD_HEIGHT:
-            value_top = self.board.board[top]
-            if value_top[self.y] is None or value_top[self.y].color != self.color:
+            value_top = self.board.get(top, self.y)
+            if value_top is None or value_top.color != self.color:
                 actions.append(Action(self.x, self.y, top, self.y))
             if self.color == Color.BLUE:
                 is_mid = self.x == 8 and self.y == 4
@@ -74,10 +77,14 @@ class Soldier(Piece):
                 is_mid = self.x == 1 and self.y == 4
                 can_diagonal_right = (self.x == 2 and self.y == 3) or is_mid
                 can_diagonal_left = (self.x == 3 and self.y == 5) or is_mid
-            if can_diagonal_right and (value_top[right] is None or value_top[right].color != self.color):
-                actions.append(Action(self.x, self.y, top, right))
-            if can_diagonal_left and (value_top[left] is None or value_top[left].color != self.color):
-                actions.append(Action(self.x, self.y, top, left))
+            if can_diagonal_right:
+                value_top_right = self.board.get(top, right)
+                if value_top_right is None or value_top_right.color != self.color:
+                    actions.append(Action(self.x, self.y, top, right))
+            if can_diagonal_left:
+                value_top_left = self.board.get(top, left)
+                if value_top_left is None or value_top_left.color != self.color:
+                    actions.append(Action(self.x, self.y, top, left))
         return actions
 
 
@@ -108,12 +115,12 @@ class Cannon(Piece):
                 is_in_diagonal_fortress = (self.x - x_diff == center_x and self.y - y_diff == center_y)
                 if not is_in_diagonal_fortress:
                     continue
-                center_fortress_is_occupied = self.board.board[center_x][center_y] is not None
+                center_fortress_is_occupied = self.board.get(center_x, center_y) is not None
                 if not center_fortress_is_occupied:
                     continue
                 diff_center_x = center_x - x_diff
                 diff_center_y = center_y - y_diff
-                value = self.board.board[diff_center_x][diff_center_y]
+                value = self.board.get(diff_center_x, diff_center_y)
                 arrival_is_free = value is None
                 can_eat_arrival = value is not None and \
                                   value.color != self.color
@@ -125,7 +132,7 @@ class Cannon(Piece):
         encounter_piece_jump = False
         for y_to in y_tos:
             for x_to in x_tos:
-                value = self.board.board[x_to][y_to]
+                value = self.board.get(x_to, y_to)
                 if value is None:
                     if encounter_piece_jump:
                         actions.append(Action(self.x, self.y, x_to, y_to))
@@ -174,8 +181,8 @@ class General(Piece):
                 is_in_fortress = x_min <= new_x <= x_max and y_min <= new_y <= y_max
                 if not is_in_fortress:
                     continue
-                destination_is_legal = (self.board.board[new_x][new_y] is None or
-                                        self.board.board[new_x][new_y].color != self.color)
+                destination_is_legal = (self.board.get(new_x, new_y) is None or
+                                        self.board.get(new_x, new_y).color != self.color)
                 # will_be_check = any([action.x_to == new_x and action.y_to == new_y for action in
                 #                      self.board.get_actions(Color(-self.color.value), exclude_general=True)])
                 if destination_is_legal:  # and not will_be_check:
@@ -206,7 +213,7 @@ class Chariot(Piece):
     def _get_normal_actions(self, actions, x_tos, y_tos):
         for x_to in x_tos:
             for y_to in y_tos:
-                value = self.board.board[x_to][y_to]
+                value = self.board.get(x_to, y_to)
                 if value is None:
                     actions.append(Action(self.x, self.y, x_to, y_to))
                 elif value.color != self.color:
@@ -221,16 +228,16 @@ class Chariot(Piece):
                 is_in_diagonal_fortress = (self.x - x_diff == center_x and self.y - y_diff == center_y)
                 if not is_in_diagonal_fortress:
                     continue
-                center_fortress_is_occupied = self.board.board[center_x][center_y] is not None
-                if center_fortress_is_occupied and self.board.board[center_x][center_y] != self.color:
+                center_fortress_is_occupied = self.board.get(center_x, center_y) is not None
+                if center_fortress_is_occupied and self.board.get(center_x, center_y) != self.color:
                     actions.append(Action(self.x, self.y, center_x, center_y))
                 elif not center_fortress_is_occupied:
                     actions.append(Action(self.x, self.y, center_x, center_y))
                     diff_center_x = center_x - x_diff
                     diff_center_y = center_y - y_diff
-                    arrival_is_free = self.board.board[diff_center_x][diff_center_y] is None
-                    can_eat_arrival = self.board.board[diff_center_x][diff_center_y] is not None and \
-                                      self.board.board[diff_center_x][diff_center_y].color != self.color
+                    arrival_is_free = self.board.get(diff_center_x, diff_center_y) is None
+                    can_eat_arrival = self.board.get(diff_center_x, diff_center_y) is not None and \
+                                      self.board.get(diff_center_x, diff_center_y).color != self.color
                     arrival_is_legal = (arrival_is_free or can_eat_arrival)
                     if arrival_is_legal:
                         actions.append(Action(self.x, self.y, diff_center_x, diff_center_y))
@@ -239,7 +246,7 @@ class Chariot(Piece):
                 for y_diff in [-1, 1]:
                     new_x = center_x + x_diff
                     new_y = center_y + y_diff
-                    value = self.board.board[new_x][new_y]
+                    value = self.board.get(new_x, new_y)
                     if value is None or value.color != self.color:
                         actions.append(Action(self.x, self.y, new_x, new_y))
 
@@ -271,18 +278,18 @@ class Elephant(Piece):
         very_long_y = self.y + 3 * fix_y
 
         third_jump_ok = self.board.is_in(very_long_x, long_y) and (
-                self.board.board[very_long_x][long_y] is None or
-                self.board.board[very_long_x][long_y].color != self.color)
-        second_jump_ok = third_jump_ok and self.board.board[long_x][short_y] is None
-        first_jump_ok = second_jump_ok and self.board.board[short_x][self.y] is None
+                self.board.get(very_long_x, long_y) is None or
+                self.board.get(very_long_x, long_y).color != self.color)
+        second_jump_ok = third_jump_ok and self.board.get(long_x, short_y) is None
+        first_jump_ok = second_jump_ok and self.board.get(short_x, self.y) is None
         if first_jump_ok:
             actions.append(Action(self.x, self.y, very_long_x, long_y))
 
         third_jump_ok = self.board.is_in(long_x, very_long_y) and (
-                self.board.board[long_x][very_long_y] is None or
-                self.board.board[long_x][very_long_y].color != self.color)
-        second_jump_ok = third_jump_ok and self.board.board[short_x][long_y] is None
-        first_jump_ok = second_jump_ok and self.board.board[self.x][short_y] is None
+                self.board.get(long_x, very_long_y) is None or
+                self.board.get(long_x, very_long_y).color != self.color)
+        second_jump_ok = third_jump_ok and self.board.get(short_x, long_y) is None
+        first_jump_ok = second_jump_ok and self.board.get(self.x, short_y) is None
         if first_jump_ok:
             actions.append(Action(self.x, self.y, long_x, very_long_y))
 
@@ -312,15 +319,15 @@ class Horse(Piece):
         long_y = self.y + 2 * fix_y
 
         if self.board.is_in(long_x, short_y):
-            value_long_short = self.board.board[long_x][short_y]
+            value_long_short = self.board.get(long_x, short_y)
             second_jump_ok = value_long_short is None or value_long_short.color != self.color
-            first_jump_ok = second_jump_ok and self.board.board[short_x][self.y] is None
+            first_jump_ok = second_jump_ok and self.board.get(short_x, self.y) is None
             if first_jump_ok:
                 actions.append(Action(self.x, self.y, long_x, short_y))
         if self.board.is_in(short_x, long_y):
-            value_short_long = self.board.board[short_x][long_y]
+            value_short_long = self.board.get(short_x, long_y)
             second_jump_ok = value_short_long is None or value_short_long.color != self.color
-            first_jump_ok = second_jump_ok and self.board.board[self.x][short_y] is None
+            first_jump_ok = second_jump_ok and self.board.get(self.x, short_y) is None
             if first_jump_ok:
                 actions.append(Action(self.x, self.y, short_x, long_y))
 
@@ -349,7 +356,7 @@ class Guard(Piece):
                 new_y = self.y + y_diff
                 is_in_fortress = x_min <= new_x <= x_max and y_min <= new_y <= y_max
                 if is_in_fortress:
-                    new_pos_value = self.board.board[new_x][new_y]
+                    new_pos_value = self.board.get(new_x, new_y)
                     destination_is_legal = (new_pos_value is None or new_pos_value.color != self.color)
                     if destination_is_legal:
                         actions.append(Action(self.x, self.y, new_x, new_y))
