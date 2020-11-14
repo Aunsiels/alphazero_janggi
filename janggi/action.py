@@ -1,6 +1,3 @@
-import numpy as np
-
-
 class Action(object):
 
     __slots__ = ('x_from', 'y_from', "x_to", "y_to", "eaten")

@@ -202,25 +202,35 @@ class Chariot(Piece):
 
     def get_actions(self):
         actions = []
-        self._get_normal_actions(actions, range(self.x + 1, BOARD_HEIGHT), [self.y])
-        self._get_normal_actions(actions, range(self.x - 1, -1, -1), [self.y])
-        self._get_normal_actions(actions, [self.x], range(self.y + 1, BOARD_WIDTH))
-        self._get_normal_actions(actions, [self.x], range(self.y - 1, -1, -1))
+        self._get_normal_actions_x(actions, range(self.x + 1, BOARD_HEIGHT), self.y)
+        self._get_normal_actions_x(actions, range(self.x - 1, -1, -1), self.y)
+        self._get_normal_actions_y(actions, self.x, range(self.y + 1, BOARD_WIDTH))
+        self._get_normal_actions_y(actions, self.x, range(self.y - 1, -1, -1))
         self._get_diagonal_actions(actions, 1, 4)
         self._get_diagonal_actions(actions, 8, 4)
         return actions
 
-    def _get_normal_actions(self, actions, x_tos, y_tos):
+    def _get_normal_actions_x(self, actions, x_tos, y_to):
         for x_to in x_tos:
-            for y_to in y_tos:
-                value = self.board.get(x_to, y_to)
-                if value is None:
-                    actions.append(Action(self.x, self.y, x_to, y_to))
-                elif value.color != self.color:
-                    actions.append(Action(self.x, self.y, x_to, y_to))
-                    return
-                else:
-                    return
+            value = self.board.get(x_to, y_to)
+            if value is None:
+                actions.append(Action(self.x, self.y, x_to, y_to))
+            elif value.color != self.color:
+                actions.append(Action(self.x, self.y, x_to, y_to))
+                return
+            else:
+                return
+
+    def _get_normal_actions_y(self, actions, x_to, y_tos):
+        for y_to in y_tos:
+            value = self.board.get(x_to, y_to)
+            if value is None:
+                actions.append(Action(self.x, self.y, x_to, y_to))
+            elif value.color != self.color:
+                actions.append(Action(self.x, self.y, x_to, y_to))
+                return
+            else:
+                return
 
     def _get_diagonal_actions(self, actions, center_x, center_y):
         for x_diff in [-1, 1]:
