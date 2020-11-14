@@ -30,7 +30,7 @@ device = torch.device(dev)
 class Trainer:
 
     def __init__(self, predictor, n_simulations=800, iter_max=200, n_simulation_opponent=800):
-        self.predictor = predictor
+        self.predictor = predictor.to(device)
         self.n_simulations = n_simulations
         self.iter_max = iter_max
         self.n_simulations_opponent = n_simulation_opponent
@@ -129,6 +129,7 @@ class Trainer:
             for i, example in enumerate(dataloader):
                 board, actions, value = example
                 optimizer.zero_grad()
+                board = board.to(device)
                 policy, value_predicted = self.predictor(board)
                 value_predicted = value_predicted.view(-1)
                 policy = policy.to(device)
