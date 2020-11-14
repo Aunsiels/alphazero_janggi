@@ -17,7 +17,14 @@ from janggi.utils import Color
 import multiprocessing as mp
 
 
-ASYNCHRONOUS = True
+ASYNCHRONOUS = False
+
+
+if torch.cuda.is_available():
+  dev = "cuda:0"
+else:
+  dev = "cpu"
+device = torch.device(dev)
 
 
 class Trainer:
@@ -85,19 +92,23 @@ class Trainer:
 
     def learn_policy(self, n_iterations, n_episodes):
         for _ in range(n_iterations):
-            if ASYNCHRONOUS:
-                with mp.Pool(3) as pool:
-                    episodes = pool.map(run_episode, [self] * n_episodes)
-                examples = [x for episode in episodes for x in episode ]
+            if self.model_saver.has_last_episode:
+                examples = self.model_saver.load_last_episode()
             else:
-                examples = []
-                for ep in range(n_episodes):
-                    begin_time = time.time()
-                    examples += self.run_episode()
-                    print("Time Episode", ep, ": ", time.time() - begin_time)
-            self.model_saver.save_episodes(examples)
+                if ASYNCHRONOUS:
+                    with mp.Pool(3) as pool:
+                        episodes = pool.map(run_episode, [self] * n_episodes)
+                    examples = [x for episode in episodes for x in episode ]
+                else:
+                    examples = []
+                    for ep in range(n_episodes):
+                        begin_time = time.time()
+                        examples += self.run_episode()
+                        print("Time Episode", ep, ": ", time.time() - begin_time)
+                self.model_saver.save_episodes(examples)
             self.train(examples)
             self.model_saver.save_weights(self.predictor)
+            self.model_saver.rename_last_episode()
             player_red = RandomMCTSPlayer(Color.RED, n_simulations=self.n_simulations_opponent,
                                    temperature_start=0.01, temperature_threshold=30, temperature_end=0.01)
             player_blue = NNPlayer(Color.BLUE, n_simulations=self.n_simulations, janggi_net=self.predictor,
@@ -120,6 +131,10 @@ class Trainer:
                 optimizer.zero_grad()
                 policy, value_predicted = self.predictor(board)
                 value_predicted = value_predicted.view(-1)
+                policy = policy.to(device)
+                value_predicted = value_predicted.to(device)
+                actions = actions.to(device)
+                value = value.to(device)
                 loss = criterion((policy, value_predicted), (actions, value))
                 loss.backward()
                 optimizer.step()
@@ -182,6 +197,22 @@ class ModelSaver:
         model.load_state_dict(torch.load(self.weights_path + "weights_" + str(last_index)))
         model.eval()
         print("Model loaded")
+
+    def has_last_episode(self):
+        return self.get_last_episode_index() != -1
+
+    def load_last_episode(self):
+        last_index = self.get_last_weight_index()
+        if last_index == -1:
+            return None
+        return torch.load(self.episode_path + "episode_" + str(last_index))
+
+    def rename_last_episode(self):
+        last_index = self.get_last_weight_index()
+        if last_index == -1:
+            return
+        os.rename(self.episode_path + "episode_" + str(last_index),
+                  self.episode_path + "episode_done_" + str(last_index))
 
 
 def run_episode(trainer):
