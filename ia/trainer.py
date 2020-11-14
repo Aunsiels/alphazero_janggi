@@ -174,6 +174,8 @@ class ModelSaver:
     def get_last_episode_index(self):
         maxi = -1
         for filename in os.listdir(self.episode_path):
+            if "done" in filename:
+                continue
             maxi = max(maxi, int(filename[len("episode_"):]))
         return maxi
 
@@ -216,7 +218,6 @@ class ModelSaver:
             return
         os.rename(self.episode_path + "episode_" + str(last_index),
                   self.episode_path + "episode_done_" + str(last_index))
-
 
 
 def run_episode(trainer):
