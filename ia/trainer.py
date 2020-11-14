@@ -205,6 +205,7 @@ class ModelSaver:
         last_index = self.get_last_weight_index()
         if last_index == -1:
             return None
+        print("Load previous episode")
         return torch.load(self.episode_path + "episode_" + str(last_index))
 
     def rename_last_episode(self):
