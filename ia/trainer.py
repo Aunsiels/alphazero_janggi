@@ -202,7 +202,7 @@ class ModelSaver:
         return self.get_last_episode_index() != -1
 
     def load_last_episode(self):
-        last_index = self.get_last_episode_index()()
+        last_index = self.get_last_episode_index()
         if last_index == -1:
             print("No episode to load.")
             return None
