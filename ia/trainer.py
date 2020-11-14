@@ -92,7 +92,7 @@ class Trainer:
 
     def learn_policy(self, n_iterations, n_episodes):
         for _ in range(n_iterations):
-            if self.model_saver.has_last_episode:
+            if self.model_saver.has_last_episode():
                 examples = self.model_saver.load_last_episode()
             else:
                 if ASYNCHRONOUS:
@@ -218,7 +218,6 @@ class ModelSaver:
             return
         os.rename(self.episode_path + "episode_" + str(last_index),
                   self.episode_path + "episode_done_" + str(last_index))
-
 
 
 def run_episode(trainer):
