@@ -233,32 +233,40 @@ class Chariot(Piece):
                 return
 
     def _get_diagonal_actions(self, actions, center_x, center_y):
-        for x_diff in [-1, 1]:
-            for y_diff in [-1, 1]:
-                is_in_diagonal_fortress = (self.x - x_diff == center_x and self.y - y_diff == center_y)
-                if not is_in_diagonal_fortress:
-                    continue
-                center_fortress_is_occupied = self.board.get(center_x, center_y) is not None
-                if center_fortress_is_occupied and self.board.get(center_x, center_y) != self.color:
-                    actions.append(Action(self.x, self.y, center_x, center_y))
-                elif not center_fortress_is_occupied:
-                    actions.append(Action(self.x, self.y, center_x, center_y))
-                    diff_center_x = center_x - x_diff
-                    diff_center_y = center_y - y_diff
-                    arrival_is_free = self.board.get(diff_center_x, diff_center_y) is None
-                    can_eat_arrival = self.board.get(diff_center_x, diff_center_y) is not None and \
-                                      self.board.get(diff_center_x, diff_center_y).color != self.color
-                    arrival_is_legal = (arrival_is_free or can_eat_arrival)
-                    if arrival_is_legal:
-                        actions.append(Action(self.x, self.y, diff_center_x, diff_center_y))
+        self._get_diagonal_actions_sub(actions, center_x, center_y, -1, 1)
+        self._get_diagonal_actions_sub(actions, center_x, center_y, -1, -1)
+        self._get_diagonal_actions_sub(actions, center_x, center_y, 1, 1)
+        self._get_diagonal_actions_sub(actions, center_x, center_y, 1, -1)
         if self.x == center_x and self.y == center_y:
-            for x_diff in [-1, 1]:
-                for y_diff in [-1, 1]:
-                    new_x = center_x + x_diff
-                    new_y = center_y + y_diff
-                    value = self.board.get(new_x, new_y)
-                    if value is None or value.color != self.color:
-                        actions.append(Action(self.x, self.y, new_x, new_y))
+            self._get_diagonal_actions_in_center(actions, center_x, center_y, -1, 1)
+            self._get_diagonal_actions_in_center(actions, center_x, center_y, -1, -1)
+            self._get_diagonal_actions_in_center(actions, center_x, center_y, 1, 1)
+            self._get_diagonal_actions_in_center(actions, center_x, center_y, 1, -1)
+
+    def _get_diagonal_actions_in_center(self, actions, center_x, center_y, x_diff, y_diff):
+        new_x = center_x + x_diff
+        new_y = center_y + y_diff
+        value = self.board.get(new_x, new_y)
+        if value is None or value.color != self.color:
+            actions.append(Action(self.x, self.y, new_x, new_y))
+
+    def _get_diagonal_actions_sub(self, actions, center_x, center_y, x_diff, y_diff):
+        is_in_diagonal_fortress = (self.x - x_diff == center_x and self.y - y_diff == center_y)
+        if not is_in_diagonal_fortress:
+            return
+        center_fortress_is_occupied = self.board.get(center_x, center_y) is not None
+        if center_fortress_is_occupied and self.board.get(center_x, center_y) != self.color:
+            actions.append(Action(self.x, self.y, center_x, center_y))
+        elif not center_fortress_is_occupied:
+            actions.append(Action(self.x, self.y, center_x, center_y))
+            diff_center_x = center_x - x_diff
+            diff_center_y = center_y - y_diff
+            arrival_is_free = self.board.get(diff_center_x, diff_center_y) is None
+            can_eat_arrival = self.board.get(diff_center_x, diff_center_y) is not None and \
+                              self.board.get(diff_center_x, diff_center_y).color != self.color
+            arrival_is_legal = (arrival_is_free or can_eat_arrival)
+            if arrival_is_legal:
+                actions.append(Action(self.x, self.y, diff_center_x, diff_center_y))
 
 
 class Elephant(Piece):
@@ -274,9 +282,10 @@ class Elephant(Piece):
 
     def get_actions(self):
         actions = []
-        for fix_x in [-1, 1]:
-            for fix_y in [-1, 1]:
-                self._get_actions_sub(actions, fix_x, fix_y)
+        self._get_actions_sub(actions, -1, 1)
+        self._get_actions_sub(actions, -1, -1)
+        self._get_actions_sub(actions, 1, 1)
+        self._get_actions_sub(actions, 1, -1)
         return actions
 
     def _get_actions_sub(self, actions, fix_x, fix_y):
@@ -317,9 +326,10 @@ class Horse(Piece):
 
     def get_actions(self):
         actions = []
-        for fix_x in [-1, 1]:
-            for fix_y in [-1, 1]:
-                self._get_actions_sub(actions, fix_x, fix_y)
+        self._get_actions_sub(actions, -1, 1)
+        self._get_actions_sub(actions, -1, -1)
+        self._get_actions_sub(actions, 1, 1)
+        self._get_actions_sub(actions, 1, -1)
         return actions
 
     def _get_actions_sub(self, actions, fix_x, fix_y):
@@ -355,18 +365,28 @@ class Guard(Piece):
 
     def get_actions(self):
         actions = []
-        self._get_action_per_fortress(actions, 0, 2, 3, 5)
-        self._get_action_per_fortress(actions, 7, 9, 3, 5)
+        if self.color == Color.BLUE:
+            self._get_action_per_fortress(actions, 0, 2, 3, 5)
+        else:
+            self._get_action_per_fortress(actions, 7, 9, 3, 5)
         return actions
 
     def _get_action_per_fortress(self, actions, x_min, x_max, y_min, y_max):
+        mid_x = x_min + 1
+        mid_y = y_min + 1
         for x_diff in [-1, 0, 1]:
             for y_diff in [-1, 0, 1]:
+                if x_diff == 0 and y_diff == 0:
+                    continue
+                if (self.x == mid_x or self.y == mid_y) and not (self.x == mid_x and self.y == mid_y):
+                    if x_diff != 0 and y_diff != 0:
+                        continue
                 new_x = self.x + x_diff
                 new_y = self.y + y_diff
                 is_in_fortress = x_min <= new_x <= x_max and y_min <= new_y <= y_max
-                if is_in_fortress:
-                    new_pos_value = self.board.get(new_x, new_y)
-                    destination_is_legal = (new_pos_value is None or new_pos_value.color != self.color)
-                    if destination_is_legal:
-                        actions.append(Action(self.x, self.y, new_x, new_y))
+                if not is_in_fortress:
+                    continue
+                destination_is_legal = (self.board.get(new_x, new_y) is None or
+                                        self.board.get(new_x, new_y).color != self.color)
+                if destination_is_legal:  # and not will_be_check:
+                    actions.append(Action(self.x, self.y, new_x, new_y))

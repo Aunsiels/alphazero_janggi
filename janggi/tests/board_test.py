@@ -115,6 +115,11 @@ class BoardTest(unittest.TestCase):
 
     def test_action_guards(self):
         self.assertEqual(len(self.board.get(0, 3).get_actions()), 2)
+        self.board.set(0, 3, None)
+        self.board.set(1, 3, Guard(1, 3, Color.BLUE, self.board))
+        self.board.invalidate_action_cache()
+        self.board._initialise_pieces_per_color()
+        self.assertEqual(len(self.board.get(1, 3).get_actions()), 2)
 
     def test_get_all_actions(self):
         self.assertEqual(len(self.board.get_actions(Color.BLUE)), 31)
@@ -159,7 +164,7 @@ class BoardTest(unittest.TestCase):
         if not no_sum:
             self.assertTrue(not any([x == 0 for x in features]))
 
-    def test_perf(self):
+    def _test_perf(self):
         for _ in range(1000):
             self.test_action_features(no_sum=True)
 

@@ -83,6 +83,7 @@ def fight(player_blue, player_red, iter_max):
     print("Score BLUE:", board.get_score(Color.BLUE))
     print("Score RED:", board.get_score(Color.RED))
     print(board)
+    return winner
 
 
 if __name__ == "__main__":
