@@ -21,8 +21,6 @@ class Board:
         self.start_blue = start_blue
         self.start_red = start_red
         self._initialize_pieces()
-        self._hash_cache = None
-        self._str_cache = None
         self._current_action_cache_node = ActionCacheNode(None)
         self._blue_pieces = []
         self._red_pieces = []
@@ -49,10 +47,6 @@ class Board:
             self._current_action_cache_node = ActionCacheNode(None)
         else:
             self._current_action_cache_node.parent = None
-
-    def _invalidate_cache(self):
-        self._hash_cache = None
-        self._str_cache = None
 
     def _initialize_pieces(self):
         self._initialize_soldiers()
@@ -132,23 +126,19 @@ class Board:
             self.set(6, y, Soldier(6, y, Color.RED, self))
 
     def __str__(self):
-        if self._str_cache is None:
-            representation = []
-            for x in range(BOARD_HEIGHT - 1, -1, -1):
-                to_print = []
-                for y in range(BOARD_WIDTH):
-                    if self.get(x, y) is None:
-                        to_print.append(".")
-                    else:
-                        to_print.append(str(self.get(x, y)))
-                representation.append(" ".join(to_print))
-            self._str_cache = "\n".join(representation) + "\n"
-        return self._str_cache
+        representation = []
+        for x in range(BOARD_HEIGHT - 1, -1, -1):
+            to_print = []
+            for y in range(BOARD_WIDTH):
+                if self.get(x, y) is None:
+                    to_print.append(".")
+                else:
+                    to_print.append(str(self.get(x, y)))
+            representation.append(" ".join(to_print))
+        return "\n".join(representation) + "\n"
 
     def __hash__(self):
-        if self._hash_cache is None:
-            self._hash_cache = hash(str(self))
-        return self._hash_cache
+        return hash(str(self))
 
     def __eq__(self, other):
         return str(self) == str(other)
@@ -158,7 +148,7 @@ class Board:
         return 0 <= x < BOARD_HEIGHT and 0 <= y < BOARD_WIDTH
 
     def get_actions(self, color, exclude_general=False):
-        actions = None
+        unfiltered_actions = None
         # Check if in cache
         if color == Color.RED:
             if exclude_general and self._current_action_cache_node.next_actions_no_general_red is not None:
@@ -166,56 +156,56 @@ class Board:
             elif not exclude_general and self._current_action_cache_node.next_actions_red is not None:
                 return self._current_action_cache_node.next_actions_red
             elif not exclude_general and self._current_action_cache_node.next_actions_no_general_red is not None:
-                actions = self._current_action_cache_node.next_actions_no_general_red
+                unfiltered_actions = self._current_action_cache_node.next_actions_no_general_red
         else:
             if exclude_general and self._current_action_cache_node.next_actions_no_general_blue is not None:
                 return self._current_action_cache_node.next_actions_no_general_blue
             elif not exclude_general and self._current_action_cache_node.next_actions_blue is not None:
                 return self._current_action_cache_node.next_actions_blue
             elif not exclude_general and self._current_action_cache_node.next_actions_no_general_blue is not None:
-                actions = self._current_action_cache_node.next_actions_no_general_blue
+                unfiltered_actions = self._current_action_cache_node.next_actions_no_general_blue
 
-        if actions is None:
+        if unfiltered_actions is None:
             if color == Color.BLUE:
                 pieces = self._blue_pieces
-                general = self._blue_general
             else:
                 pieces = self._red_pieces
-                general = self._red_general
             actions_list = []
             filtered_pieces = [piece for piece in pieces if piece.is_alive]
 
             for piece in filtered_pieces:
                 actions_list.append(piece.get_actions())
-            actions = itertools.chain(*actions_list)
+            unfiltered_actions = itertools.chain(*actions_list)
 
         if not exclude_general:
             # Exclude actions creating a check
             filtered_actions = []
-            for action in actions:
+            for action in unfiltered_actions:
                 self.apply_action(action)
                 if not self.is_check(color):
                     filtered_actions.append(action)
                 self.reverse_action(action)
             actions = filtered_actions
+        else:
+            actions = unfiltered_actions
 
         # Put in cache
         if color == Color.RED:
-            if exclude_general:
-                self._current_action_cache_node.next_actions_no_general_red = actions
-            else:
+            self._current_action_cache_node.next_actions_no_general_red = unfiltered_actions
+            if not exclude_general:
                 self._current_action_cache_node.next_actions_red = actions
+
         else:
-            if exclude_general:
-                self._current_action_cache_node.next_actions_no_general_blue = actions
-            else:
+            self._current_action_cache_node.next_actions_no_general_blue = unfiltered_actions
+            if not exclude_general:
                 self._current_action_cache_node.next_actions_blue = actions
 
         return actions
 
     def is_finished(self, color, last_action=None):
-        return self.get_score(color) == 0 or \
-               (self.get_score(color) < 20 and last_action is not None and last_action.eaten is None) or \
+        score = self.get_score(color)
+        return score == 0 or \
+               (score < 20 and last_action is not None and last_action.eaten is None) or \
                (len(self.get_actions(color)) == 0 and self.is_check(color))
 
     def is_check(self, color, x_from=None, y_from=None, x_to=None, y_to=None):
@@ -226,11 +216,12 @@ class Board:
             king_x = self._red_general.x
             king_y = self._red_general.y
         other_actions = self.get_actions(Color(-color.value), exclude_general=True)
-        return any((action.x_to == king_x and action.y_to == king_y for action in other_actions))
+        for action in other_actions:
+            if action.x_to == king_x and action.y_to == king_y:
+                return True
+        return False
 
     def apply_action(self, action):
-        self._invalidate_cache()
-
         if action not in self._current_action_cache_node.next_nodes:
             self._current_action_cache_node.next_nodes[action] = ActionCacheNode(self._current_action_cache_node)
         self._current_action_cache_node = self._current_action_cache_node.next_nodes[action]
@@ -249,7 +240,6 @@ class Board:
         self.set(action.x_from, action.y_from, None)
 
     def reverse_action(self, action):
-        self._invalidate_cache()
         self._current_action_cache_node = self._current_action_cache_node.parent
 
         if action is None:

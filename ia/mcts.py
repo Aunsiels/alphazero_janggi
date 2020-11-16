@@ -21,6 +21,7 @@ class MCTSNode:
         self.N = dict()
         self.next_nodes = dict()
         self.is_initial = is_initial
+        self.total_N = 0
 
     def set_up(self, probabiliies, current_player, actions):
         self.probabilities = probabiliies
@@ -84,7 +85,7 @@ class MCTS:
         for action in possible_actions:
             u = current_node.q[action] + \
                 self.c_puct * current_node.probabilities[action] * \
-                math.sqrt(sum(current_node.N.values())) / (1 + current_node.N[action])
+                math.sqrt(current_node.total_N) / (1 + current_node.N[action])
             if u > u_max:
                 u_max = u
                 best_action = action
@@ -107,11 +108,12 @@ class MCTS:
         current_node.q[best_action] = (current_node.N[best_action] * current_node.q[best_action] + value) \
                                       / (current_node.N[best_action] + 1)
         current_node.N[best_action] += 1
+        current_node.total_N += 1
 
         return -value
 
     def choose_action(self, current_node, game, predictor):
-        for _ in range(self.n_simulations - sum(current_node.N.values())):
+        for _ in range(self.n_simulations - current_node.total_N):
             self.run_simulation(current_node, game, predictor)
         items = list(current_node.N.items())
         if game.round > self.temperature_threshold:

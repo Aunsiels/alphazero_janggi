@@ -71,8 +71,8 @@ class Soldier(Piece):
                 actions.append(Action(self.x, self.y, top, self.y))
             if self.color == Color.BLUE:
                 is_mid = self.x == 8 and self.y == 4
-                can_diagonal_right = (self.x == 7 and self.y == 3) or is_mid
-                can_diagonal_left = (self.x == 7 and self.y == 5) or is_mid
+                can_diagonal_right = is_mid or (self.x == 7 and self.y == 3)
+                can_diagonal_left = is_mid or (self.x == 7 and self.y == 5)
             else:
                 is_mid = self.x == 1 and self.y == 4
                 can_diagonal_right = (self.x == 2 and self.y == 3) or is_mid

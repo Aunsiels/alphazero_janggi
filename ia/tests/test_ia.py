@@ -18,7 +18,7 @@ class TestIA(unittest.TestCase):
         self.assertEqual(winner, Color.RED)
 
     def test_random_vs_random(self):
-        n_simulations = 200
+        n_simulations = 800
         player_blue = RandomMCTSPlayer(Color.BLUE, n_simulations=n_simulations)
         player_red = RandomMCTSPlayer(Color.RED, n_simulations=n_simulations)
         winner = fight(player_blue, player_red, 200)
