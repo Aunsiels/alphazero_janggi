@@ -158,32 +158,37 @@ class Board:
         return 0 <= x < BOARD_HEIGHT and 0 <= y < BOARD_WIDTH
 
     def get_actions(self, color, exclude_general=False):
+        actions = None
         # Check if in cache
         if color == Color.RED:
             if exclude_general and self._current_action_cache_node.next_actions_no_general_red is not None:
                 return self._current_action_cache_node.next_actions_no_general_red
             elif not exclude_general and self._current_action_cache_node.next_actions_red is not None:
                 return self._current_action_cache_node.next_actions_red
+            elif not exclude_general and self._current_action_cache_node.next_actions_no_general_red is not None:
+                actions = self._current_action_cache_node.next_actions_no_general_red
         else:
             if exclude_general and self._current_action_cache_node.next_actions_no_general_blue is not None:
                 return self._current_action_cache_node.next_actions_no_general_blue
             elif not exclude_general and self._current_action_cache_node.next_actions_blue is not None:
                 return self._current_action_cache_node.next_actions_blue
+            elif not exclude_general and self._current_action_cache_node.next_actions_no_general_blue is not None:
+                actions = self._current_action_cache_node.next_actions_no_general_blue
 
-        if color == Color.BLUE:
-            pieces = self._blue_pieces
-            general = self._blue_general
-        else:
-            pieces = self._red_pieces
-            general = self._red_general
-        actions_list = []
-        filtered_pieces = [piece for piece in pieces if piece.is_alive and not isinstance(piece, General)]
+        if actions is None:
+            if color == Color.BLUE:
+                pieces = self._blue_pieces
+                general = self._blue_general
+            else:
+                pieces = self._red_pieces
+                general = self._red_general
+            actions_list = []
+            filtered_pieces = [piece for piece in pieces if piece.is_alive]
 
-        for piece in filtered_pieces:
-           actions_list.append(piece.get_actions())
-        if not exclude_general:
-            actions_list.append(general.get_actions())
-        actions = itertools.chain(*actions_list)
+            for piece in filtered_pieces:
+                actions_list.append(piece.get_actions())
+            actions = itertools.chain(*actions_list)
+
         if not exclude_general:
             # Exclude actions creating a check
             filtered_actions = []
