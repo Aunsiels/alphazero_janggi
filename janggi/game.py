@@ -19,15 +19,16 @@ class Game:
     def run_game(self, iter_max=-1):
         while not self.is_finished(iter_max):
             # print(self.round, self.current_player)
-            # begin_time = time.time()
+            begin_time = time.time()
             new_action = self.get_next_action()
+            # print(new_action)
             self.actions.append(new_action)
             self.board.apply_action(new_action)
             self.switch_player()
             self.board.invalidate_action_cache(new_action)  # Try to reduce memory usage
             self.round += 1
-            #print(time.time() - begin_time)
-            # print(self.board)
+            # print(time.time() - begin_time)
+            #print(self.board)
         if not self.board.is_finished(self.current_player):
             score_BLUE = self.board.get_score(Color.BLUE)
             score_RED = self.board.get_score(Color.RED)

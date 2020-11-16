@@ -175,7 +175,7 @@ class Board:
 
             for piece in filtered_pieces:
                 actions_list.append(piece.get_actions())
-            unfiltered_actions = itertools.chain(*actions_list)
+            unfiltered_actions = list(itertools.chain(*actions_list))
 
         if not exclude_general:
             # Exclude actions creating a check

@@ -121,7 +121,11 @@ class MCTS:
         else:
             inv_temperature = 1 / self.temperature_start
         if items:
-            action = random.choices([x[0] for x in items], [x[1] ** inv_temperature for x in items])[0]
+            proba = [x[1] ** inv_temperature for x in items]
+            total = sum(proba)
+            for i in range(len(proba)):
+                proba[i] /= total
+            action = random.choices([x[0] for x in items], proba)[0]
         else:
             action = None
         #random.shuffle(items)
