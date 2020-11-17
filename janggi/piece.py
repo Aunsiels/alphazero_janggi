@@ -79,7 +79,7 @@ class Soldier(Piece):
             else:
                 is_mid = self.x == 1 and self.y == 4
                 can_diagonal_right = (self.x == 2 and self.y == 3) or is_mid
-                can_diagonal_left = (self.x == 3 and self.y == 5) or is_mid
+                can_diagonal_left = (self.x == 2 and self.y == 5) or is_mid
             if can_diagonal_right:
                 value_top_right = self.board.get(top, right)
                 if value_top_right is None or value_top_right.color != self.color:
