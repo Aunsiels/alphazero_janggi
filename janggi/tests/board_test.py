@@ -126,6 +126,7 @@ class BoardTest(unittest.TestCase):
         self.board.set(2, 3, Chariot(2, 3, Color.RED, self.board))
         self.board._current_action_cache_node = ActionCacheNode(None)
         self.board._initialise_pieces_per_color()
+        print(self.board)
         actions = self.board.get_actions(Color.BLUE)
         self.assertEqual(len(actions), 4)
 

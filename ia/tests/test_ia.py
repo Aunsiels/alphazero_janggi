@@ -9,7 +9,7 @@ from janggi.utils import Color
 
 class TestIA(unittest.TestCase):
 
-    def test_mcts_vs_random(self):
+    def _test_mcts_vs_random(self):
         player_blue = RandomPlayer(Color.BLUE)
         player_red = RandomMCTSPlayer(Color.RED, n_simulations=800, temperature_start=0.01, temperature_threshold=30, temperature_end=0.01)
         winner = fight(player_blue, player_red, 200)

@@ -178,12 +178,38 @@ class Board:
             unfiltered_actions = list(itertools.chain(*actions_list))
 
         if not exclude_general:
+            if color == Color.BLUE:
+                other_pieces = self._red_pieces
+                general = self._blue_general
+            else:
+                other_pieces = self._blue_pieces
+                general = self._red_general
+            potential_threads = [piece
+                                 for piece in other_pieces
+                                 if piece.is_potentially_threatening(general.x, general.y)]
             # Exclude actions creating a check
             filtered_actions = []
             for action in unfiltered_actions:
                 self.apply_action(action)
-                if not self.is_check(color):
-                    filtered_actions.append(action)
+                if action.x_to == general.x and action.y_to == general.y:
+                    # If we are the general, we have no choice
+                    if not self.is_check(color):
+                        filtered_actions.append(action)
+                else:
+                    found = False
+                    for potential_thread in potential_threads:
+                        if not potential_thread.is_alive:
+                            continue
+                        other_actions = potential_thread.get_actions()
+                        for other_action in other_actions:
+                            if other_action.x_to == general.x and other_action.y_to == general.y:
+                                found = True
+                                break
+                        if found:
+                            break
+                    if not found:
+                        filtered_actions.append(action)
+
                 self.reverse_action(action)
             actions = filtered_actions
         else:

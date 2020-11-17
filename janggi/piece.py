@@ -40,6 +40,9 @@ class Piece:
     def get_index(self):
         raise NotImplementedError
 
+    def is_potentially_threatening(self, x_threat, y_threat):
+        raise NotImplementedError
+
 
 class Soldier(Piece):
 
@@ -86,6 +89,11 @@ class Soldier(Piece):
                 if value_top_left is None or value_top_left.color != self.color:
                     actions.append(Action(self.x, self.y, top, left))
         return actions
+
+    def is_potentially_threatening(self, x_threat, y_threat):
+        x_diff = abs(x_threat - self.x)
+        y_diff = abs(y_threat - self.y)
+        return (x_diff == 0 and y_diff == 1) or (x_diff == 1 and y_diff == 0) or (x_diff == 1 and y_diff == 1)
 
 
 class Cannon(Piece):
@@ -146,6 +154,15 @@ class Cannon(Piece):
                 else:
                     return
 
+    def is_potentially_threatening(self, x_threat, y_threat):
+        if self.x == x_threat or self.y == y_threat:
+            return True
+        dist_center_fortress_blue = abs(self.x - 1) + abs(self.y - 4)
+        if dist_center_fortress_blue <= 2:
+            return True
+        dist_center_fortress_red = abs(self.x - 8) + abs(self.y - 4)
+        return dist_center_fortress_red <= 2
+
 
 class General(Piece):
 
@@ -187,6 +204,9 @@ class General(Piece):
                 #                      self.board.get_actions(Color(-self.color.value), exclude_general=True)])
                 if destination_is_legal:  # and not will_be_check:
                     actions.append(Action(self.x, self.y, new_x, new_y))
+
+    def is_potentially_threatening(self, x_threat, y_threat):
+        return False
 
 
 class Chariot(Piece):
@@ -268,6 +288,15 @@ class Chariot(Piece):
             if arrival_is_legal:
                 actions.append(Action(self.x, self.y, diff_center_x, diff_center_y))
 
+    def is_potentially_threatening(self, x_threat, y_threat):
+        if self.x == x_threat or self.y == y_threat:
+            return True
+        dist_center_fortress_blue = abs(self.x - 1) + abs(self.y - 4)
+        if dist_center_fortress_blue <= 2:
+            return True
+        dist_center_fortress_red = abs(self.x - 8) + abs(self.y - 4)
+        return dist_center_fortress_red <= 2
+
 
 class Elephant(Piece):
 
@@ -312,6 +341,11 @@ class Elephant(Piece):
         if first_jump_ok:
             actions.append(Action(self.x, self.y, long_x, very_long_y))
 
+    def is_potentially_threatening(self, x_threat, y_threat):
+        x_diff = abs(self.x - x_threat)
+        y_diff = abs(self.y - y_threat)
+        return (x_diff == 3 and y_diff == 2) or (x_diff == 2 and y_diff == 3)
+
 
 class Horse(Piece):
 
@@ -350,6 +384,11 @@ class Horse(Piece):
             first_jump_ok = second_jump_ok and self.board.get(self.x, short_y) is None
             if first_jump_ok:
                 actions.append(Action(self.x, self.y, short_x, long_y))
+
+    def is_potentially_threatening(self, x_threat, y_threat):
+        x_diff = abs(self.x - x_threat)
+        y_diff = abs(self.y - y_threat)
+        return (x_diff == 2 and y_diff == 1) or (x_diff == 1 and y_diff == 2)
 
 
 class Guard(Piece):
@@ -390,3 +429,6 @@ class Guard(Piece):
                                         self.board.get(new_x, new_y).color != self.color)
                 if destination_is_legal:  # and not will_be_check:
                     actions.append(Action(self.x, self.y, new_x, new_y))
+
+    def is_potentially_threatening(self, x_threat, y_threat):
+        return False
