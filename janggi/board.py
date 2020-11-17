@@ -4,11 +4,10 @@ import torch
 from janggi.piece import Soldier, Cannon, General, Chariot, Elephant, Horse, Guard
 from janggi.utils import BOARD_HEIGHT, BOARD_WIDTH, Color
 
-
 if torch.cuda.is_available():
-  dev = "cuda:0"
+    dev = "cuda:0"
 else:
-  dev = "cpu"
+    dev = "cpu"
 device = torch.device(dev)
 
 
@@ -147,84 +146,66 @@ class Board:
     def is_in(x, y):
         return 0 <= x < BOARD_HEIGHT and 0 <= y < BOARD_WIDTH
 
-    def get_actions(self, color, exclude_general=False):
-        unfiltered_actions = None
+    def get_actions(self, color):
         # Check if in cache
         if color == Color.RED:
-            if exclude_general and self._current_action_cache_node.next_actions_no_general_red is not None:
-                return self._current_action_cache_node.next_actions_no_general_red
-            elif not exclude_general and self._current_action_cache_node.next_actions_red is not None:
+            if self._current_action_cache_node.next_actions_red is not None:
                 return self._current_action_cache_node.next_actions_red
-            elif not exclude_general and self._current_action_cache_node.next_actions_no_general_red is not None:
-                unfiltered_actions = self._current_action_cache_node.next_actions_no_general_red
         else:
-            if exclude_general and self._current_action_cache_node.next_actions_no_general_blue is not None:
-                return self._current_action_cache_node.next_actions_no_general_blue
-            elif not exclude_general and self._current_action_cache_node.next_actions_blue is not None:
+            if self._current_action_cache_node.next_actions_blue is not None:
                 return self._current_action_cache_node.next_actions_blue
-            elif not exclude_general and self._current_action_cache_node.next_actions_no_general_blue is not None:
-                unfiltered_actions = self._current_action_cache_node.next_actions_no_general_blue
 
-        if unfiltered_actions is None:
-            if color == Color.BLUE:
-                pieces = self._blue_pieces
-            else:
-                pieces = self._red_pieces
-            actions_list = []
-            filtered_pieces = [piece for piece in pieces if piece.is_alive]
-
-            for piece in filtered_pieces:
-                actions_list.append(piece.get_actions())
-            unfiltered_actions = list(itertools.chain(*actions_list))
-
-        if not exclude_general:
-            if color == Color.BLUE:
-                other_pieces = self._red_pieces
-                general = self._blue_general
-            else:
-                other_pieces = self._blue_pieces
-                general = self._red_general
-            potential_threads = [piece
-                                 for piece in other_pieces
-                                 if piece.is_potentially_threatening(general.x, general.y)]
-            # Exclude actions creating a check
-            filtered_actions = []
-            for action in unfiltered_actions:
-                self.apply_action(action)
-                if action.x_to == general.x and action.y_to == general.y:
-                    # If we are the general, we have no choice
-                    if not self.is_check(color):
-                        filtered_actions.append(action)
-                else:
-                    found = False
-                    for potential_thread in potential_threads:
-                        if not potential_thread.is_alive:
-                            continue
-                        other_actions = potential_thread.get_actions()
-                        for other_action in other_actions:
-                            if other_action.x_to == general.x and other_action.y_to == general.y:
-                                found = True
-                                break
-                        if found:
-                            break
-                    if not found:
-                        filtered_actions.append(action)
-
-                self.reverse_action(action)
-            actions = filtered_actions
+        if color == Color.BLUE:
+            pieces = self._blue_pieces
         else:
-            actions = unfiltered_actions
+            pieces = self._red_pieces
+        actions_list = []
+        filtered_pieces = [piece for piece in pieces if piece.is_alive]
+
+        for piece in filtered_pieces:
+            actions_list.append(piece.get_actions())
+        unfiltered_actions = list(itertools.chain(*actions_list))
+
+        if color == Color.BLUE:
+            other_pieces = self._red_pieces
+            general = self._blue_general
+        else:
+            other_pieces = self._blue_pieces
+            general = self._red_general
+        potential_threads = [piece
+                             for piece in other_pieces
+                             if piece.is_potentially_threatening(general.x, general.y)]
+        # Exclude actions creating a check
+        filtered_actions = []
+        for action in unfiltered_actions:
+            self.apply_action(action)
+            if action.x_to == general.x and action.y_to == general.y:
+                # If we are the general, we have no choice
+                if not self.is_check(color):
+                    filtered_actions.append(action)
+            else:
+                found = False
+                for potential_thread in potential_threads:
+                    if not potential_thread.is_alive:
+                        continue
+                    other_actions = potential_thread.get_actions()
+                    for other_action in other_actions:
+                        if other_action.x_to == general.x and other_action.y_to == general.y:
+                            found = True
+                            break
+                    if found:
+                        break
+                if not found:
+                    filtered_actions.append(action)
+
+            self.reverse_action(action)
+        actions = filtered_actions
 
         # Put in cache
         if color == Color.RED:
-            self._current_action_cache_node.next_actions_no_general_red = unfiltered_actions
-            if not exclude_general:
-                self._current_action_cache_node.next_actions_red = actions
-
+            self._current_action_cache_node.next_actions_red = actions
         else:
-            self._current_action_cache_node.next_actions_no_general_blue = unfiltered_actions
-            if not exclude_general:
-                self._current_action_cache_node.next_actions_blue = actions
+            self._current_action_cache_node.next_actions_blue = actions
 
         return actions
 
@@ -234,17 +215,22 @@ class Board:
                (score < 20 and last_action is not None and last_action.eaten is None) or \
                (len(self.get_actions(color)) == 0 and self.is_check(color))
 
-    def is_check(self, color, x_from=None, y_from=None, x_to=None, y_to=None):
+    def is_check(self, color):
         if color == Color.BLUE:
             king_x = self._blue_general.x
             king_y = self._blue_general.y
+            other_pieces = self._red_pieces
         else:
             king_x = self._red_general.x
             king_y = self._red_general.y
-        other_actions = self.get_actions(Color(-color.value), exclude_general=True)
-        for action in other_actions:
-            if action.x_to == king_x and action.y_to == king_y:
-                return True
+            other_pieces = self._blue_pieces
+        for piece in other_pieces:
+            if not piece.is_alive or not piece.is_potentially_threatening(king_x, king_y):
+                continue
+            actions = piece.get_actions()
+            for action in actions:
+                if action.x_to == king_x and action.y_to == king_y:
+                    return True
         return False
 
     def apply_action(self, action):
@@ -302,19 +288,19 @@ class Board:
     def set(self, x, y, new_value):
         self.board[x][y] = new_value
 
-    def get_features(self, color, round):
-        reversed = color != Color.BLUE
+    def get_features(self, color, n_round):
+        is_reversed = color != Color.BLUE
         # 7 pieces, for two colors, + one plan color + one plan number played
         features = torch.zeros((7 * 2 + 2, BOARD_HEIGHT, BOARD_WIDTH))
         for x in range(BOARD_HEIGHT):
             for y in range(BOARD_WIDTH):
-                current = self.get(x, y, reversed)
+                current = self.get(x, y, is_reversed)
                 if current is None:
                     continue
                 features[current.get_index() + 7 * (current.color != color), x, y] = 1
         if color == Color.RED:
             features[7 * 2, :, :] = 1
-        features[7 * 2 + 1, :, :] = round
+        features[7 * 2 + 1, :, :] = n_round
         features = features.to(device)
         return features
 
@@ -325,14 +311,12 @@ def get_action_piece(piece):
 
 class ActionCacheNode:
 
-    def __init__(self, parent, next_actions_blue=None, next_actions_no_general_blue=None,
-                 next_actions_red=None, next_actions_no_general_red=None):
+    def __init__(self, parent, next_actions_blue=None,
+                 next_actions_red=None):
         self.parent = parent
         self.next_nodes = dict()
         self.next_actions_blue = next_actions_blue
-        self.next_actions_no_general_blue = next_actions_no_general_blue
         self.next_actions_red = next_actions_red
-        self.next_actions_no_general_red = next_actions_no_general_red
 
 
 def get_actions_piece(x):
