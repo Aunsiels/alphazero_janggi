@@ -126,7 +126,6 @@ class BoardTest(unittest.TestCase):
         self.board.set(2, 3, Chariot(2, 3, Color.RED, self.board))
         self.board._current_action_cache_node = ActionCacheNode(None)
         self.board._initialise_pieces_per_color()
-        print(self.board)
         actions = self.board.get_actions(Color.BLUE)
         self.assertEqual(len(actions), 4)
 
@@ -168,6 +167,34 @@ class BoardTest(unittest.TestCase):
     def _test_perf(self):
         for _ in range(1000):
             self.test_action_features(no_sum=True)
+
+    def test_read(self):
+        for x in range(BOARD_HEIGHT):
+            for y in range(BOARD_WIDTH):
+                self.board.set(x, y, None)
+        self.board.set(0, 5, Guard(0, 5, Color.BLUE, self.board))
+        self.board.set(0, 7, Elephant(0, 7, Color.BLUE, self.board))
+        self.board.set(1, 4, Guard(1, 4, Color.BLUE, self.board))
+        self.board.set(2, 0, Horse(2, 0, Color.BLUE, self.board))
+        self.board.set(2, 3, General(2, 3, Color.BLUE, self.board))
+        self.board.set(4, 6, Cannon(4, 6, Color.BLUE, self.board))
+        self.board.set(5, 0, Soldier(5, 0, Color.BLUE, self.board))
+        self.board.set(7, 0, Chariot(0, 5, Color.BLUE, self.board))
+
+        self.board.set(1, 8, Cannon(1, 8, Color.RED, self.board))
+        self.board.set(3, 3, Soldier(3, 3, Color.RED, self.board))
+        self.board.set(3, 5, Soldier(3, 5, Color.RED, self.board))
+        self.board.set(3, 8, Soldier(3, 8, Color.RED, self.board))
+        self.board.set(6, 8, Chariot(6, 8, Color.RED, self.board))
+        self.board.set(7, 4, Guard(7, 4, Color.RED, self.board))
+        self.board.set(8, 4, Horse(8, 4, Color.RED, self.board))
+        self.board.set(9, 2, Horse(9, 2, Color.RED, self.board))
+        self.board.set(9, 4, General(9, 4, Color.RED, self.board))
+        self.board.set(9, 6, Guard(9, 6, Color.RED, self.board))
+        self.board.set(9, 7, Elephant(9, 7, Color.RED, self.board))
+
+        self.board._initialise_pieces_per_color()
+        self.assertEqual(len(self.board.get_actions(Color.BLUE)), 1)
 
 
 class TestBoardWon(BoardTest):
