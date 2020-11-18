@@ -288,13 +288,17 @@ class Board:
     def set(self, x, y, new_value):
         self.board[x][y] = new_value
 
-    def get_features(self, color, n_round):
+    def get_features(self, color, n_round, symmetry=False):
         is_reversed = color != Color.BLUE
         # 7 pieces, for two colors, + one plan color + one plan number played
         features = torch.zeros((7 * 2 + 2, BOARD_HEIGHT, BOARD_WIDTH))
         for x in range(BOARD_HEIGHT):
             for y in range(BOARD_WIDTH):
-                current = self.get(x, y, is_reversed)
+                if symmetry:
+                    new_y = BOARD_WIDTH - 1 - y
+                else:
+                    new_y = y
+                current = self.get(x, new_y, is_reversed)
                 if current is None:
                     continue
                 features[current.get_index() + 7 * (current.color != color), x, y] = 1

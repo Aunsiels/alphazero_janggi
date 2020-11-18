@@ -63,11 +63,17 @@ class Trainer:
             if game.current_player == Color.BLUE:
                 examples.append([board.get_features(game.current_player, game.round),
                                  player_blue.current_node.get_policy(),
-                                 None])
+                                 Color.BLUE])
+                examples.append([board.get_features(game.current_player, game.round, symmetry=True),
+                                 player_blue.current_node.get_policy(symmetry=True),
+                                 Color.BLUE])
             else:
+                examples.append([board.get_features(game.current_player, game.round, symmetry=True),
+                                 player_red.current_node.get_policy(symmetry=True),
+                                 Color.RED])
                 examples.append([board.get_features(game.current_player, game.round),
                                  player_red.current_node.get_policy(),
-                                 None])
+                                 Color.RED])
             game.board.apply_action(new_action)
             game.switch_player()
             game.board.invalidate_action_cache(new_action)  # Try to reduce memory usage
@@ -81,10 +87,10 @@ class Trainer:
                 winner = Color.RED
         else:
             winner = Color(-game.current_player.value)
-        for i, example in enumerate(examples):
-            if winner == Color.BLUE and i%2 == 0:
+        for example in examples:
+            if winner == Color.BLUE and example[2] == Color.BLUE:
                 example[2] = 1
-            elif winner == Color.RED and i%2 == 1:
+            elif winner == Color.RED and example[2] == Color.RED:
                 example[2] = 1
             else:
                 example[2] = -1

@@ -151,6 +151,7 @@ class BoardTest(unittest.TestCase):
             for y in range(BOARD_WIDTH):
                 self.board.set(x, y, None)
         features = np.zeros(58)
+        features_sym = np.zeros(58)
         for x in range(BOARD_HEIGHT):
             for y in range(BOARD_WIDTH):
                 for piece in [Soldier, Cannon, General, Chariot, Elephant, Horse, Guard]:
@@ -159,10 +160,14 @@ class BoardTest(unittest.TestCase):
                         if not no_sum:
                             f_temp = action.get_features()
                             features[f_temp] += 1
+                            f_temp = action.get_features(symmetry=True)
+                            features_sym[f_temp] += 1
                     self.board.set(x, y, None)
                     self._current_action_cache_node = ActionCacheNode(None)
         if not no_sum:
             self.assertTrue(not any([x == 0 for x in features]))
+            self.assertTrue(not any([x == 0 for x in features_sym]))
+            self.assertTrue(all(x == 0 for x in (features - features_sym)))
 
     def _test_perf(self):
         for _ in range(1000):

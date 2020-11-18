@@ -40,7 +40,7 @@ class MCTSNode:
             self.q[None] = 0
             self.N[None] = 0
 
-    def get_policy(self):
+    def get_policy(self, symmetry=False):
         policy = torch.zeros((58, 10, 9))
         totals = dict()
         for action, value in self.N.items():
@@ -57,7 +57,7 @@ class MCTSNode:
                 continue
             total_temp = totals[(action.x_from, action.y_from)]
             if total_temp != 0:
-                policy[action.get_features(), action.x_from, action.y_from] = value / total_temp
+                policy[action.get_features(symmetry), action.x_from, action.y_from] = value / total_temp
         return policy.to(device)
 
 
