@@ -17,6 +17,7 @@ class Game:
         self.actions = []
 
     def run_game(self, iter_max=-1):
+        begin_game_time = time.time()
         while not self.is_finished(iter_max):
             # print(self.round, self.current_player)
             # begin_time = time.time()
@@ -29,6 +30,8 @@ class Game:
             self.round += 1
             # print(time.time() - begin_time)
             # print(self.board)
+        end_game_time = time.time()
+        print("Mean time per action", (end_game_time - begin_game_time) / self.round)
         if not self.board.is_finished(self.current_player):
             score_BLUE = self.board.get_score(Color.BLUE)
             score_RED = self.board.get_score(Color.RED)

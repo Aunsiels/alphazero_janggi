@@ -11,8 +11,7 @@ from ia.mcts import MCTSNode
 from ia.random_mcts_player import NNPlayer, fight, RandomMCTSPlayer
 from janggi.board import Board
 from janggi.game import Game
-from janggi.utils import Color
-
+from janggi.utils import Color, DEVICE
 
 import multiprocessing as mp
 
@@ -20,17 +19,10 @@ import multiprocessing as mp
 ASYNCHRONOUS = False
 
 
-if torch.cuda.is_available():
-  dev = "cuda:0"
-else:
-  dev = "cpu"
-device = torch.device(dev)
-
-
 class Trainer:
 
     def __init__(self, predictor, n_simulations=800, iter_max=200, n_simulation_opponent=800):
-        self.predictor = predictor.to(device)
+        self.predictor = predictor.to(DEVICE)
         self.n_simulations = n_simulations
         self.iter_max = iter_max
         self.n_simulations_opponent = n_simulation_opponent
@@ -135,13 +127,13 @@ class Trainer:
             for i, example in enumerate(dataloader):
                 board, actions, value = example
                 optimizer.zero_grad()
-                board = board.to(device)
+                board = board.to(DEVICE)
                 policy, value_predicted = self.predictor(board)
                 value_predicted = value_predicted.view(-1)
-                policy = policy.to(device)
-                value_predicted = value_predicted.to(device)
-                actions = actions.to(device)
-                value = value.to(device)
+                policy = policy.to(DEVICE)
+                value_predicted = value_predicted.to(DEVICE)
+                actions = actions.to(DEVICE)
+                value = value.to(DEVICE)
                 loss = criterion((policy, value_predicted), (actions, value))
                 loss.backward()
                 optimizer.step()
@@ -203,9 +195,21 @@ class ModelSaver:
         last_index = self.get_last_weight_index()
         if last_index == -1:
             return
+        self.load_index_model(model, last_index)
+        print("Model loaded")
+
+    def load_index_model(self, model, last_index):
         model.load_state_dict(torch.load(self.weights_path + "weights_" + str(last_index)))
         model.eval()
+
+    def load_random_model(self, model):
+        last_index = self.get_last_weight_index()
+        if last_index == -1:
+            return -1
+        model_idx = random.randint(0, last_index)
+        self.load_index_model(model, model_idx)
         print("Model loaded")
+        return model_idx
 
     def has_last_episode(self):
         return self.get_last_episode_index() != -1

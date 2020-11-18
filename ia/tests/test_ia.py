@@ -1,8 +1,6 @@
 import unittest
 
 from ia.random_mcts_player import RandomMCTSPlayer, fight
-from janggi.board import Board
-from janggi.game import Game
 from janggi.player import RandomPlayer
 from janggi.utils import Color
 
@@ -16,7 +14,7 @@ class TestIA(unittest.TestCase):
         self.assertEqual(winner, Color.RED)
 
     def test_random_vs_random(self):
-        n_simulations = 1600
+        n_simulations = 200
         player_blue = RandomMCTSPlayer(Color.BLUE, n_simulations=n_simulations)
         player_red = RandomMCTSPlayer(Color.RED, n_simulations=n_simulations)
         winner = fight(player_blue, player_red, 200)

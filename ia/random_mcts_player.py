@@ -5,7 +5,7 @@ from ia.mcts import MCTS, MCTSNode
 from janggi.board import Board
 from janggi.game import Game
 from janggi.player import Player, RandomPlayer
-from janggi.utils import Color
+from janggi.utils import Color, DEVICE
 
 
 class RandomMCTSPlayer(Player):
@@ -39,18 +39,11 @@ class RandomMCTSPlayer(Player):
         return {action: 1 / len(actions) for action in actions}, diff_score
 
 
-if torch.cuda.is_available():
-  dev = "cuda:0"
-else:
-  dev = "cpu"
-device = torch.device(dev)
-
-
 class NNPlayer(RandomMCTSPlayer):
 
     def __init__(self, color, c_puct=4, n_simulations=800, current_node=None, janggi_net=JanggiNetwork(), temperature_start=1, temperature_threshold=30, temperature_end=1):
         super().__init__(color, c_puct, n_simulations, current_node, temperature_start, temperature_threshold, temperature_end)
-        self.janggi_net = janggi_net.to(device)
+        self.janggi_net = janggi_net.to(DEVICE)
 
     def predict(self):
         actions = self.game.get_current_actions()

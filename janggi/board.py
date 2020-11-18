@@ -2,13 +2,7 @@ import itertools
 
 import torch
 from janggi.piece import Soldier, Cannon, General, Chariot, Elephant, Horse, Guard
-from janggi.utils import BOARD_HEIGHT, BOARD_WIDTH, Color
-
-if torch.cuda.is_available():
-    dev = "cuda:0"
-else:
-    dev = "cpu"
-device = torch.device(dev)
+from janggi.utils import BOARD_HEIGHT, BOARD_WIDTH, Color, DEVICE
 
 
 class Board:
@@ -305,7 +299,7 @@ class Board:
         if color == Color.RED:
             features[7 * 2, :, :] = 1
         features[7 * 2 + 1, :, :] = n_round
-        features = features.to(device)
+        features = features.to(DEVICE)
         return features
 
 
@@ -321,7 +315,3 @@ class ActionCacheNode:
         self.next_nodes = dict()
         self.next_actions_blue = next_actions_blue
         self.next_actions_red = next_actions_red
-
-
-def get_actions_piece(x):
-    return x.get_actions()

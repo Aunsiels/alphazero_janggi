@@ -4,12 +4,7 @@ import random
 import torch
 import numpy as np
 
-
-if torch.cuda.is_available():
-  dev = "cuda:0"
-else:
-  dev = "cpu"
-device = torch.device(dev)
+from janggi.utils import DEVICE
 
 
 class MCTSNode:
@@ -58,7 +53,7 @@ class MCTSNode:
             total_temp = totals[(action.x_from, action.y_from)]
             if total_temp != 0:
                 policy[action.get_features(symmetry), action.x_from, action.y_from] = value / total_temp
-        return policy.to(device)
+        return policy.to(DEVICE)
 
 
 class MCTS:
