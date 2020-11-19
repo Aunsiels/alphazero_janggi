@@ -56,12 +56,12 @@ class Trainer:
                 examples.append([board.get_features(game.current_player, game.round),
                                  player_blue.current_node.get_policy(game.current_player),
                                  Color.BLUE])
-                examples.append([board.get_features(game.current_player, game.round, symmetry=True),
-                                 player_blue.current_node.get_policy(game.current_player, symmetry=True),
+                examples.append([board.get_features(game.current_player, game.round, data_augmentation=True),
+                                 player_blue.current_node.get_policy(game.current_player, data_augmentation=True),
                                  Color.BLUE])
             else:
-                examples.append([board.get_features(game.current_player, game.round, symmetry=True),
-                                 player_red.current_node.get_policy(game.current_player, symmetry=True),
+                examples.append([board.get_features(game.current_player, game.round, data_augmentation=True),
+                                 player_red.current_node.get_policy(game.current_player, data_augmentation=True),
                                  Color.RED])
                 examples.append([board.get_features(game.current_player, game.round),
                                  player_red.current_node.get_policy(game.current_player),
