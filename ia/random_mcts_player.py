@@ -1,7 +1,7 @@
 import torch
 
 from ia.janggi_network import JanggiNetwork
-from ia.mcts import MCTS, MCTSNode
+from ia.mcts import MCTS, MCTSNode, get_symmetries
 from janggi.board import Board
 from janggi.game import Game
 from janggi.player import Player, RandomPlayer
@@ -49,11 +49,14 @@ class NNPlayer(RandomMCTSPlayer):
         actions = self.game.get_current_actions()
         features = self.game.get_features()
         features = torch.unsqueeze(features, 0)
+        symm_x, symm_y = get_symmetries(self.game.current_player)
         with torch.no_grad():
             policy, value = self.janggi_net(features)
             actions_proba = dict()
             for action in actions:
-                actions_proba[action] = policy[0, action.get_features(), action.x_from, action.y_from].detach().item()
+                actions_proba[action] = policy[0, action.get_features(symm_x, symm_y),
+                                               action.get_x_from(symm_x),
+                                               action.get_y_from(symm_y)].detach().item()
             value = value[0, 0].detach().item()
         return actions_proba, value
 

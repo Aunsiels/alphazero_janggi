@@ -54,17 +54,17 @@ class Trainer:
             game.actions.append(new_action)
             if game.current_player == Color.BLUE:
                 examples.append([board.get_features(game.current_player, game.round),
-                                 player_blue.current_node.get_policy(),
+                                 player_blue.current_node.get_policy(game.current_player),
                                  Color.BLUE])
                 examples.append([board.get_features(game.current_player, game.round, symmetry=True),
-                                 player_blue.current_node.get_policy(symmetry=True),
+                                 player_blue.current_node.get_policy(game.current_player, symmetry=True),
                                  Color.BLUE])
             else:
                 examples.append([board.get_features(game.current_player, game.round, symmetry=True),
-                                 player_red.current_node.get_policy(symmetry=True),
+                                 player_red.current_node.get_policy(game.current_player, symmetry=True),
                                  Color.RED])
                 examples.append([board.get_features(game.current_player, game.round),
-                                 player_red.current_node.get_policy(),
+                                 player_red.current_node.get_policy(game.current_player),
                                  Color.RED])
             game.board.apply_action(new_action)
             game.switch_player()

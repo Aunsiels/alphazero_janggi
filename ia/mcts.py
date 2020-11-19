@@ -4,7 +4,18 @@ import random
 import torch
 import numpy as np
 
-from janggi.utils import DEVICE
+from janggi.utils import DEVICE, Color
+
+
+def get_symmetries(current_player, data_augmentation=False):
+    symmetry_x = False
+    symmetry_y = False
+    if current_player == Color.RED:
+        symmetry_x = True
+        symmetry_y = True
+    if data_augmentation:
+        symmetry_y = not symmetry_y
+    return symmetry_x, symmetry_y
 
 
 class MCTSNode:
@@ -35,24 +46,26 @@ class MCTSNode:
             self.q[None] = 0
             self.N[None] = 0
 
-    def get_policy(self, symmetry=False):
+    def get_policy(self, current_player, data_augmentation=False):
         policy = torch.zeros((58, 10, 9))
         totals = dict()
+        symmetry_x, symmetry_y = get_symmetries(current_player, data_augmentation)
         for action, value in self.N.items():
             if action is None:
                 if None not in totals:
                     totals[None] = 0
                 totals[None] += value
             else:
-                if (action.x_from, action.y_from) not in totals:
-                    totals[(action.x_from, action.y_from)] = 0
-                totals[(action.x_from, action.y_from)] += value
+                if (action.get_x_from(symmetry_x), action.get_y_from(symmetry_y)) not in totals:
+                    totals[(action.get_x_from(symmetry_x), action.get_y_from(symmetry_y))] = 0
+                totals[(action.get_x_from(symmetry_x), action.get_y_from(symmetry_y))] += value
         for action, value in self.N.items():
             if action is None:
                 continue
-            total_temp = totals[(action.x_from, action.y_from)]
+            total_temp = totals[(action.get_x_from(symmetry_x), action.get_y_from(symmetry_y))]
             if total_temp != 0:
-                policy[action.get_features(symmetry), action.x_from, action.y_from] = value / total_temp
+                policy[action.get_features(symmetry_x, symmetry_y),
+                       action.get_x_from(symmetry_x), action.get_y_from(symmetry_y)] = value / total_temp
         return policy.to(DEVICE)
 
 

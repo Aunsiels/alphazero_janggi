@@ -1,3 +1,24 @@
+from janggi.utils import BOARD_HEIGHT, BOARD_WIDTH
+
+SYMMETRY_X = [9, 10, 11, 12, 13, 14, 15, 16, 17,  # North
+              0, 1, 2, 3, 4, 5, 6, 7, 8,  # South
+              18, 19, 20, 21, 22, 23, 24, 25,  # East
+              26, 27, 28, 29, 30, 31, 32, 33,  # West
+              35, 34, 37, 36, 39, 38, 41, 40,  # Diagonal
+              43, 42, 45, 44, 48, 49, 46, 47,  # Horse
+              51, 50, 53, 52, 56, 57, 54, 55  # Elephant
+              ]
+
+SYMMETRY_Y = [0, 1, 2, 3, 4, 5, 6, 7, 8,  # North
+              9, 10, 11, 12, 13, 14, 15, 16, 17,  # South
+              26, 27, 28, 29, 30, 31, 32, 33,  # East
+              18, 19, 20, 21, 22, 23, 24, 25,  # West
+              36, 37, 34, 35, 40, 41, 38, 39,  # Diagonal
+              44, 45, 42, 43, 47, 46, 49, 48,  # Horse
+              52, 53, 50, 51, 55, 54, 57, 56  # Elephant
+              ]
+
+
 class Action(object):
 
     __slots__ = ('x_from', 'y_from', "x_to", "y_to", "eaten")
@@ -8,6 +29,26 @@ class Action(object):
         self.x_to = x_to
         self.y_to = y_to
         self.eaten = None
+
+    def get_x_from(self, symmetry=False):
+        if symmetry:
+            return BOARD_HEIGHT - 1 - self.x_from
+        return self.x_from
+
+    def get_x_to(self, symmetry=False):
+        if symmetry:
+            return BOARD_HEIGHT - 1 - self.x_to
+        return self.x_from
+
+    def get_y_from(self, symmetry=False):
+        if symmetry:
+            return BOARD_WIDTH - 1 - self.y_from
+        return self.y_from
+
+    def get_y_to(self, symmetry=False):
+        if symmetry:
+            return BOARD_WIDTH - 1 - self.y_to
+        return self.y_to
 
     def __str__(self):
         return "Action(" + str(self.x_from) + ", " + str(self.y_from) + ", " \
@@ -23,166 +64,95 @@ class Action(object):
         return self.x_from == other.x_from and self.y_from == other.y_from \
             and self.x_to == other.x_to and self.y_to == other.y_to
 
-    def get_features(self, symmetry=False):
+    def get_features(self, symmetry_x=False, symmetry_y=False):
+        res = None
         if self.y_from == self.y_to:
             # Vertical move
             if self.x_to > self.x_from:
                 # North move
-                return self.x_to - self.x_from - 1
+                res = self.x_to - self.x_from - 1
             else:
                 # South move
-                return self.x_from - self.x_to + 8
+                res = self.x_from - self.x_to + 8
         elif self.x_from == self.x_to:
             # Horizontal move
             if self.y_to > self.y_from:
                 # East move
-                if not symmetry:
-                    return self.y_to - self.y_from + 17
-                else:
-                    return self.y_to - self.y_from + 25
+                res = self.y_to - self.y_from + 17
+
             else:
                 # West move
-                if not symmetry:
-                    return self.y_from - self.y_to + 25
-                else:
-                    return self.y_from - self.y_to + 17
+                res = self.y_from - self.y_to + 25
         elif self.y_to - self.y_from == 1:
             # Short Diagonal East
             if self.x_to - self.x_from == 1:
-                if not symmetry:
-                    return 34
-                else:
-                    return 36
+                res = 34
             elif self.x_to - self.x_from == -1:
-                if not symmetry:
-                    return 35
-                else:
-                    return 37
+                res = 35
             # Horse Vertical East
             elif self.x_to > self.x_from:
-                if not symmetry:
-                    return 42
-                else:
-                    return 44
+                res = 42
             else:
-                if not symmetry:
-                    return 43
-                else:
-                    return 45
+                res = 43
         elif self.y_to - self.y_from == -1:
             # Short Diagonal West
             if self.x_to - self.x_from == 1:
-                if not symmetry:
-                    return 36
-                else:
-                    return 34
+                res = 36
             elif self.x_to - self.x_from == -1:
-                if not symmetry:
-                    return 37
-                else:
-                    return 35
+                res = 37
             # Horse Vertical West
             elif self.x_to > self.x_from:
-                if not symmetry:
-                    return 44
-                else:
-                    return 42
+                res = 44
             else:
-                if not symmetry:
-                    return 45
-                else:
-                    return 43
+                res = 45
         elif self.x_to - self.x_from == 1:
             # Horse Horizontal North
             if self.y_to > self.y_from:
-                if not symmetry:
-                    return 46
-                else:
-                    return 47
+                res = 46
             else:
-                if not symmetry:
-                    return 47
-                else:
-                    return 46
+                res = 47
         elif self.x_to - self.x_from == -1:
             # Horse Horizontal South
             if self.y_to > self.y_from:
-                if not symmetry:
-                    return 48
-                else:
-                    return 49
+                res = 48
             else:
-                if not symmetry:
-                    return 49
-                else:
-                    return 48
+                res = 49
         elif self.y_to - self.y_from == 2:
             # Large Diagonal East
             if self.x_to - self.x_from == 2:
-                if not symmetry:
-                    return 38
-                else:
-                    return 40
+                res = 38
             elif self.x_to - self.x_from == -2:
-                if not symmetry:
-                    return 39
-                else:
-                    return 41
+                res = 39
             # Elephant Vertical East
             elif self.x_to > self.x_from:
-                if not symmetry:
-                    return 50
-                else:
-                    return 52
+                res = 50
             else:
-                if not symmetry:
-                    return 51
-                else:
-                    return 53
+                res = 51
         elif self.y_to - self.y_from == -2:
             # Large Diagonal West
             if self.x_to - self.x_from == 2:
-                if not symmetry:
-                    return 40
-                else:
-                    return 38
+                res = 40
             elif self.x_to - self.x_from == -2:
-                if not symmetry:
-                    return 41
-                else:
-                    return 39
+                res = 41
             # Elephant Vertical West
             elif self.x_to > self.x_from:
-                if not symmetry:
-                    return 52
-                else:
-                    return 50
+                res = 52
             else:
-                if not symmetry:
-                    return 53
-                else:
-                    return 51
+                res = 53
         elif self.x_to - self.x_from == 2:
             # Elephant Horizontal North
             if self.y_to > self.y_from:
-                if not symmetry:
-                    return 54
-                else:
-                    return 55
+                res = 54
             else:
-                if not symmetry:
-                    return 55
-                else:
-                    return 54
+                res = 55
         elif self.x_to - self.x_from == -2:
             # Horse Horizontal South
             if self.y_to > self.y_from:
-                if not symmetry:
-                    return 56
-                else:
-                    return 57
+                res = 56
             else:
-                if not symmetry:
-                    return 57
-                else:
-                    return 56
+                res = 57
+        if symmetry_x:
+            res = SYMMETRY_X[res]
+        if symmetry_y:
+            res = SYMMETRY_Y[res]
+        return res
