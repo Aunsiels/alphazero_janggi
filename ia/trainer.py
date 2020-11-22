@@ -17,9 +17,9 @@ from janggi.utils import Color, DEVICE
 
 import multiprocessing as mp
 
-SUPERVISED_GAMES_FREQ = 100
+SUPERVISED_GAMES_FREQ = 1000
 
-LOG_PRINT_FREQ = 100
+LOG_PRINT_FREQ = 1000
 
 BATCH_SIZE = 5
 
@@ -131,7 +131,6 @@ class Trainer:
             for line in f:
                 line = line.strip()
                 if line == "":
-                    print("Game number", game_number)
                     if is_blue:
                         winner = Color.RED
                     else:
