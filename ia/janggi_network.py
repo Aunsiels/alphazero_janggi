@@ -73,8 +73,8 @@ class PolicyNetwork(nn.Module):
         x = self.relu(x)
         x = x.view(-1, OUT_CONV_POLICY * BOARD_WIDTH * BOARD_HEIGHT)
         x = self.linear(x)
-        x = x.view(-1, ACTION_SIZE, BOARD_HEIGHT, BOARD_WIDTH)
         x = self.softmax(x)
+        x = x.view(-1, ACTION_SIZE, BOARD_HEIGHT, BOARD_WIDTH)
         return x
 
 

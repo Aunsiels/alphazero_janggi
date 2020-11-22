@@ -9,24 +9,41 @@ from torch.utils.data.dataset import T_co
 from ia.janggi_network import JanggiLoss
 from ia.mcts import MCTSNode
 from ia.random_mcts_player import NNPlayer, fight, RandomMCTSPlayer
+from janggi.action import Action, get_none_action_policy
 from janggi.board import Board
 from janggi.game import Game
+from janggi.player import RandomPlayer
 from janggi.utils import Color, DEVICE
 
 import multiprocessing as mp
 
+SUPERVISED_GAMES_FREQ = 100
+
+LOG_PRINT_FREQ = 100
+
+BATCH_SIZE = 5
 
 ASYNCHRONOUS = False
 
 
+def set_winner(examples, winner):
+    for example in examples:
+        if winner == Color.BLUE and example[2] == Color.BLUE:
+            example[2] = 1
+        elif winner == Color.RED and example[2] == Color.RED:
+            example[2] = 1
+        else:
+            example[2] = -1
+
+
 class Trainer:
 
-    def __init__(self, predictor, n_simulations=800, iter_max=200, n_simulation_opponent=800):
+    def __init__(self, predictor, n_simulations=800, iter_max=200, n_simulation_opponent=800, dir_base="model"):
         self.predictor = predictor.to(DEVICE)
         self.n_simulations = n_simulations
         self.iter_max = iter_max
         self.n_simulations_opponent = n_simulation_opponent
-        self.model_saver = ModelSaver()
+        self.model_saver = ModelSaver(dir_base)
         self.model_saver.load_latest_model(self.predictor)
 
     def run_episode(self):
@@ -79,13 +96,7 @@ class Trainer:
                 winner = Color.RED
         else:
             winner = Color(-game.current_player.value)
-        for example in examples:
-            if winner == Color.BLUE and example[2] == Color.BLUE:
-                example[2] = 1
-            elif winner == Color.RED and example[2] == Color.RED:
-                example[2] = 1
-            else:
-                example[2] = -1
+        set_winner(examples, winner)
         return examples
 
     def learn_policy(self, n_iterations, n_episodes):
@@ -96,7 +107,7 @@ class Trainer:
                 if ASYNCHRONOUS:
                     with mp.Pool(3) as pool:
                         episodes = pool.map(run_episode, [self] * n_episodes)
-                    examples = [x for episode in episodes for x in episode ]
+                    examples = [x for episode in episodes for x in episode]
                 else:
                     examples = []
                     for ep in range(n_episodes):
@@ -104,22 +115,108 @@ class Trainer:
                         examples += self.run_episode()
                         print("Time Episode", ep, ": ", time.time() - begin_time)
                 self.model_saver.save_episodes(examples)
-            self.train(examples)
-            self.model_saver.save_weights(self.predictor)
-            self.model_saver.rename_last_episode()
-            player_red = RandomMCTSPlayer(Color.RED, n_simulations=self.n_simulations_opponent,
-                                   temperature_start=0.01, temperature_threshold=30, temperature_end=0.01)
-            player_blue = NNPlayer(Color.BLUE, n_simulations=self.n_simulations, janggi_net=self.predictor,
-                                   temperature_start=0.01, temperature_threshold=30, temperature_end=0.01)
-            fight(player_blue,
-                  player_red,
-                  self.iter_max)
+            self.train_and_fight(examples)
+
+    def learn_supervised(self, training_file):
+        examples_all = []
+        print("Generate training data...")
+        game_number = 1
+        with open(training_file) as f:
+            blue_starting = None
+            red_starting = None
+            board = None
+            is_blue = True
+            round = 0
+            examples = []
+            for line in f:
+                line = line.strip()
+                if line == "":
+                    print("Game number", game_number)
+                    if is_blue:
+                        winner = Color.RED
+                    else:
+                        winner = Color.BLUE
+                    set_winner(examples, winner)
+                    examples_all += examples
+                    # End game
+                    blue_starting = None
+                    red_starting = None
+                    board = None
+                    is_blue = True
+                    round = 0
+                    examples = []
+                    game_number += 1
+                    if game_number % SUPERVISED_GAMES_FREQ == 0:
+                        print("Start training")
+                        self.train_and_fight(examples_all)
+                        examples_all = []
+                        print("Generate training data...")
+                elif blue_starting is None:
+                    blue_starting = line
+                elif red_starting is None:
+                    red_starting = line
+                else:
+                    if board is None:
+                        board = Board(start_blue=blue_starting, start_red=red_starting)
+                    if line == "XXXX":
+                        action = None
+                        get_policy = get_none_action_policy
+                    else:
+                        action = Action(int(line[0]), int(line[1]), int(line[2]), int(line[3]))
+                        get_policy = action.get_policy
+                    if is_blue:
+                        examples.append([board.get_features(Color.BLUE, round),
+                                         get_policy(Color.BLUE),
+                                         Color.BLUE])
+                        examples.append([board.get_features(Color.BLUE, round, data_augmentation=True),
+                                         get_policy(Color.BLUE,
+                                                    data_augmentation=True),
+                                         Color.BLUE])
+                    else:
+                        examples.append([board.get_features(Color.RED, round, data_augmentation=True),
+                                         get_policy(Color.RED,
+                                                    data_augmentation=True),
+                                         Color.RED])
+                        examples.append([board.get_features(Color.RED, round),
+                                         get_policy(Color.RED),
+                                         Color.RED])
+                    board.apply_action(action)
+                    round += 1
+                    is_blue = not is_blue
+            if is_blue:
+                winner = Color.RED
+            else:
+                winner = Color.BLUE
+            set_winner(examples, winner)
+            examples_all += examples
+        print("Start training")
+        self.train_and_fight(examples_all)
+
+    def train_and_fight(self, examples):
+        self.train(examples)
+        player_red = RandomPlayer(Color.RED)
+        player_blue = NNPlayer(Color.BLUE, n_simulations=self.n_simulations, janggi_net=self.predictor,
+                               temperature_start=0.01, temperature_threshold=30, temperature_end=0.01)
+        fight(player_blue,
+              player_red,
+              self.iter_max)
+
+        player_red = RandomMCTSPlayer(Color.RED, n_simulations=self.n_simulations_opponent,
+                                      temperature_start=0.01, temperature_threshold=30, temperature_end=0.01)
+        player_blue = NNPlayer(Color.BLUE, n_simulations=self.n_simulations, janggi_net=self.predictor,
+                               temperature_start=0.01, temperature_threshold=30, temperature_end=0.01)
+        fight(player_blue,
+              player_red,
+              self.iter_max)
+
+        self.model_saver.save_weights(self.predictor)
+        self.model_saver.rename_last_episode()
 
     def train(self, examples):
         criterion = JanggiLoss()
-        optimizer = torch.optim.SGD(self.predictor.parameters(), lr=0.02, momentum=0.9, weight_decay=0.0001)
+        optimizer = torch.optim.SGD(self.predictor.parameters(), lr=0.002, momentum=0.9, weight_decay=0.0001)
         dataset = ExampleDataset(examples)
-        dataloader = DataLoader(dataset, batch_size=5,
+        dataloader = DataLoader(dataset, batch_size=BATCH_SIZE,
                                 shuffle=True, num_workers=0)
 
         for epoch in range(2):
@@ -138,9 +235,9 @@ class Trainer:
                 loss.backward()
                 optimizer.step()
                 running_loss += loss.item()
-                if i%20 == 19:
+                if i % LOG_PRINT_FREQ == LOG_PRINT_FREQ - 1:
                     print('[%d, %5d] loss: %.3f' %
-                          (epoch + 1, i + 1, running_loss / 20))
+                          (epoch + 1, i + 1, running_loss / LOG_PRINT_FREQ / BATCH_SIZE))
                     running_loss = 0.0
 
 
@@ -158,16 +255,16 @@ class ExampleDataset(Dataset):
 
 class ModelSaver:
 
-    def __init__(self):
-        if not os.path.isdir("model"):
-            os.mkdir("model")
-        if not os.path.isdir("model/episodes"):
-            os.mkdir("model/episodes")
-        if not os.path.isdir("model/weights"):
-            os.mkdir("model/weights")
-        self.model_path = "model/"
-        self.episode_path = "model/episodes/"
-        self.weights_path = "model/weights/"
+    def __init__(self, dir_base="model"):
+        if not os.path.isdir(dir_base):
+            os.mkdir(dir_base)
+        if not os.path.isdir(dir_base + "/episodes"):
+            os.mkdir(dir_base + "/episodes")
+        if not os.path.isdir(dir_base + "/weights"):
+            os.mkdir(dir_base + "/weights")
+        self.model_path = dir_base + "/"
+        self.episode_path = dir_base + "/episodes/"
+        self.weights_path = dir_base + "/weights/"
 
     def get_last_episode_index(self):
         maxi = -1

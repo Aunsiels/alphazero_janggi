@@ -1,4 +1,6 @@
-from janggi.utils import BOARD_HEIGHT, BOARD_WIDTH
+import torch
+
+from janggi.utils import BOARD_HEIGHT, BOARD_WIDTH, get_symmetries, DEVICE
 
 SYMMETRY_X = [9, 10, 11, 12, 13, 14, 15, 16, 17,  # North
               0, 1, 2, 3, 4, 5, 6, 7, 8,  # South
@@ -156,3 +158,15 @@ class Action(object):
         if symmetry_y:
             res = SYMMETRY_Y[res]
         return res
+
+    def get_policy(self, current_player, data_augmentation=False):
+        policy = torch.zeros((58, 10, 9))
+        symmetry_x, symmetry_y = get_symmetries(current_player, data_augmentation)
+        policy[self.get_features(symmetry_x, symmetry_y),
+               self.get_x_from(symmetry_x), self.get_y_from(symmetry_y)] = 1.0
+        return policy.to(DEVICE)
+
+
+def get_none_action_policy(current_player, data_augmentation=False):
+    policy = torch.zeros((58, 10, 9))
+    return policy.to(DEVICE)

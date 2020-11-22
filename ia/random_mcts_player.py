@@ -1,11 +1,11 @@
 import torch
 
 from ia.janggi_network import JanggiNetwork
-from ia.mcts import MCTS, MCTSNode, get_symmetries
+from ia.mcts import MCTS, MCTSNode
 from janggi.board import Board
 from janggi.game import Game
 from janggi.player import Player, RandomPlayer
-from janggi.utils import Color, DEVICE
+from janggi.utils import Color, DEVICE, get_symmetries
 
 
 class RandomMCTSPlayer(Player):

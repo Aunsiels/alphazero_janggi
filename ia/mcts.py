@@ -4,18 +4,7 @@ import random
 import torch
 import numpy as np
 
-from janggi.utils import DEVICE, Color
-
-
-def get_symmetries(current_player, data_augmentation=False):
-    symmetry_x = False
-    symmetry_y = False
-    if current_player == Color.RED:
-        symmetry_x = True
-        symmetry_y = True
-    if data_augmentation:
-        symmetry_y = not symmetry_y
-    return symmetry_x, symmetry_y
+from janggi.utils import DEVICE, get_symmetries
 
 
 class MCTSNode:
@@ -48,21 +37,11 @@ class MCTSNode:
 
     def get_policy(self, current_player, data_augmentation=False):
         policy = torch.zeros((58, 10, 9))
-        totals = dict()
         symmetry_x, symmetry_y = get_symmetries(current_player, data_augmentation)
         for action, value in self.N.items():
             if action is None:
-                if None not in totals:
-                    totals[None] = 0
-                totals[None] += value
-            else:
-                if (action.get_x_from(symmetry_x), action.get_y_from(symmetry_y)) not in totals:
-                    totals[(action.get_x_from(symmetry_x), action.get_y_from(symmetry_y))] = 0
-                totals[(action.get_x_from(symmetry_x), action.get_y_from(symmetry_y))] += value
-        for action, value in self.N.items():
-            if action is None:
                 continue
-            total_temp = totals[(action.get_x_from(symmetry_x), action.get_y_from(symmetry_y))]
+            total_temp = self.total_N
             if total_temp != 0:
                 policy[action.get_features(symmetry_x, symmetry_y),
                        action.get_x_from(symmetry_x), action.get_y_from(symmetry_y)] = value / total_temp
@@ -124,12 +103,13 @@ class MCTS:
         for _ in range(self.n_simulations - current_node.total_N):
             self.run_simulation(current_node, game, predictor)
         items = list(current_node.N.items())
+        total = current_node.total_N
         if game.round > self.temperature_threshold:
             inv_temperature = 1 / self.temperature_end
         else:
             inv_temperature = 1 / self.temperature_start
         if items:
-            proba = [x[1] ** inv_temperature for x in items]
+            proba = [(x[1] / total) ** inv_temperature for x in items]
             total = sum(proba)
             for i in range(len(proba)):
                 proba[i] /= total
