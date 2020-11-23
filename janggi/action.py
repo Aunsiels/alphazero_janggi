@@ -164,9 +164,11 @@ class Action(object):
         symmetry_x, symmetry_y = get_symmetries(current_player, data_augmentation)
         policy[self.get_features(symmetry_x, symmetry_y),
                self.get_x_from(symmetry_x), self.get_y_from(symmetry_y)] = 1.0
-        return policy.to(DEVICE)
+        # return policy.to(DEVICE)
+        return policy
 
 
 def get_none_action_policy(current_player, data_augmentation=False):
     policy = torch.zeros((58, 10, 9))
-    return policy.to(DEVICE)
+    # return policy.to(DEVICE)
+    return policy
