@@ -219,6 +219,7 @@ class Trainer:
               self.iter_max)
 
     def train(self, examples):
+        self.predictor.train()
         criterion = JanggiLoss()
         dataset = ExampleDataset(examples)
         dataloader = DataLoader(dataset, batch_size=BATCH_SIZE,
@@ -244,6 +245,7 @@ class Trainer:
                     print('[%d, %5d] loss: %.3f' %
                           (epoch + 1, i + 1, running_loss / LOG_PRINT_FREQ))
                     running_loss = 0.0
+        self.predictor.eval()
 
 
 class ExampleDataset(Dataset):
@@ -301,7 +303,7 @@ class ModelSaver:
         if last_index == -1:
             return
         self.load_index_model(model, optimizer, last_index)
-        print("Model loaded")
+        print("Model loaded:", last_index)
 
     def load_index_model(self, model, optimizer=None, last_index=-1):
         checkpoint = torch.load(self.weights_path + "weights_" + str(last_index))
