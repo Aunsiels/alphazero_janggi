@@ -17,6 +17,8 @@ from janggi.utils import Color, DEVICE
 
 import multiprocessing as mp
 
+LEARNING_RATE = 0.001
+
 EPOCH_NUMBER = 1
 
 SUPERVISED_GAMES_FREQ = 1000
@@ -215,7 +217,7 @@ class Trainer:
 
     def train(self, examples):
         criterion = JanggiLoss()
-        optimizer = torch.optim.SGD(self.predictor.parameters(), lr=0.002, momentum=0.9, weight_decay=0.0001)
+        optimizer = torch.optim.SGD(self.predictor.parameters(), lr=LEARNING_RATE, momentum=0.9, weight_decay=0.0001)
         dataset = ExampleDataset(examples)
         dataloader = DataLoader(dataset, batch_size=BATCH_SIZE,
                                 shuffle=True, num_workers=0)
