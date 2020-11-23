@@ -53,10 +53,15 @@ class NNPlayer(RandomMCTSPlayer):
         with torch.no_grad():
             policy, value = self.janggi_net(features)
             actions_proba = dict()
+            total = 0
             for action in actions:
-                actions_proba[action] = policy[0, action.get_features(symm_x, symm_y),
-                                               action.get_x_from(symm_x),
-                                               action.get_y_from(symm_y)].detach().item()
+                value_policy_action = policy[0, action.get_features(symm_x, symm_y), action.get_x_from(symm_x),
+                                             action.get_y_from(symm_y)].detach().item()
+                actions_proba[action] = value_policy_action
+                total += value_policy_action
+            if total != 0:
+                for action in actions:
+                    actions_proba[action] /= total
             value = value[0, 0].detach().item()
         return actions_proba, value
 
