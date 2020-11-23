@@ -68,6 +68,8 @@ class MCTS:
             current_node.set_up(probabilities, game.current_player, possible_actions)
             return -predicted_value
 
+        random.shuffle(possible_actions)
+
         u_max, best_action = -float("inf"), None
         for action in possible_actions:
             u = current_node.q[action] + \

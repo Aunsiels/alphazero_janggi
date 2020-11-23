@@ -17,7 +17,7 @@ def get_player(player_name, color, model_saver):
                                 temperature_end=0.01)
     else:
         predictor = JanggiNetwork()
-        model_saver.load_index_model(predictor, player_name)
+        model_saver.load_index_model(predictor, None, player_name)
         return NNPlayer(color,
                         n_simulations=400,
                         janggi_net=predictor,

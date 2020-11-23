@@ -48,7 +48,8 @@ class Trainer:
         self.iter_max = iter_max
         self.n_simulations_opponent = n_simulation_opponent
         self.model_saver = ModelSaver(dir_base)
-        self.model_saver.load_latest_model(self.predictor)
+        self.optimizer = torch.optim.SGD(self.predictor.parameters(), lr=LEARNING_RATE, momentum=0.9, weight_decay=0.0001)
+        self.model_saver.load_latest_model(self.predictor, self.optimizer)
 
     def run_episode(self):
         examples = []
@@ -212,12 +213,11 @@ class Trainer:
               player_red,
               self.iter_max)
 
-        self.model_saver.save_weights(self.predictor)
+        self.model_saver.save_weights(self.predictor, optimizer=self.optimizer)
         self.model_saver.rename_last_episode()
 
     def train(self, examples):
         criterion = JanggiLoss()
-        optimizer = torch.optim.SGD(self.predictor.parameters(), lr=LEARNING_RATE, momentum=0.9, weight_decay=0.0001)
         dataset = ExampleDataset(examples)
         dataloader = DataLoader(dataset, batch_size=BATCH_SIZE,
                                 shuffle=True, num_workers=0)
@@ -226,7 +226,7 @@ class Trainer:
             running_loss = 0.0
             for i, example in enumerate(dataloader):
                 board, actions, value = example
-                optimizer.zero_grad()
+                self.optimizer.zero_grad()
                 board = board.to(DEVICE)
                 policy, value_predicted = self.predictor(board)
                 value_predicted = value_predicted.view(-1)
@@ -236,7 +236,7 @@ class Trainer:
                 value = value.to(DEVICE)
                 loss = criterion((policy, value_predicted), (actions, value))
                 loss.backward()
-                optimizer.step()
+                self.optimizer.step()
                 running_loss += loss.item()
                 if i % LOG_PRINT_FREQ == LOG_PRINT_FREQ - 1:
                     print('[%d, %5d] loss: %.3f' %
@@ -287,27 +287,33 @@ class ModelSaver:
         new_index = self.get_last_episode_index() + 1
         torch.save(episodes, self.episode_path + "episode_" + str(new_index))
 
-    def save_weights(self, model):
+    def save_weights(self, model, optimizer):
         new_index = self.get_last_weight_index() + 1
-        torch.save(model.state_dict(), self.weights_path + "weights_" + str(new_index))
+        torch.save({
+            "model_state_dict": model.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict()
+        }, self.weights_path + "weights_" + str(new_index))
 
-    def load_latest_model(self, model):
+    def load_latest_model(self, model, optimizer=None):
         last_index = self.get_last_weight_index()
         if last_index == -1:
             return
-        self.load_index_model(model, last_index)
+        self.load_index_model(model, optimizer, last_index)
         print("Model loaded")
 
-    def load_index_model(self, model, last_index):
-        model.load_state_dict(torch.load(self.weights_path + "weights_" + str(last_index)))
+    def load_index_model(self, model, optimizer=None, last_index=-1):
+        checkpoint = torch.load(self.weights_path + "weights_" + str(last_index))
+        model.load_state_dict(checkpoint["model_state_dict"])
+        if optimizer is not None:
+            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         model.eval()
 
-    def load_random_model(self, model):
+    def load_random_model(self, model, optimizer=None):
         last_index = self.get_last_weight_index()
         if last_index == -1:
             return -1
         model_idx = random.randint(0, last_index)
-        self.load_index_model(model, model_idx)
+        self.load_index_model(model, optimizer, model_idx)
         print("Model loaded")
         return model_idx
 
