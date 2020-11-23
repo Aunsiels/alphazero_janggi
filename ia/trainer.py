@@ -17,6 +17,8 @@ from janggi.utils import Color, DEVICE
 
 import multiprocessing as mp
 
+EPOCH_NUMBER = 1
+
 SUPERVISED_GAMES_FREQ = 1000
 
 LOG_PRINT_FREQ = 1000
@@ -218,7 +220,7 @@ class Trainer:
         dataloader = DataLoader(dataset, batch_size=BATCH_SIZE,
                                 shuffle=True, num_workers=0)
 
-        for epoch in range(2):
+        for epoch in range(EPOCH_NUMBER):
             running_loss = 0.0
             for i, example in enumerate(dataloader):
                 board, actions, value = example
