@@ -2,7 +2,7 @@ import unittest
 
 from ia.janggi_network import FirstLayerJanggiNetwork, ResidualBlock, JanggiNetwork, PolicyNetwork, ValueNetwork
 from janggi.board import Board
-from janggi.utils import Color
+from janggi.utils import Color, BOARD_HEIGHT, BOARD_WIDTH
 
 
 class TestNN(unittest.TestCase):
@@ -30,6 +30,7 @@ class TestNN(unittest.TestCase):
         board = Board()
         janggi_nn = JanggiNetwork()
         features_in = board.get_features(Color.BLUE, 1)
+        features_in = features_in.view(1, -1, BOARD_HEIGHT, BOARD_WIDTH)
         policy, value = janggi_nn(features_in)
         self.assertEqual(list(policy.shape), [1, 58, 10, 9])
         self.assertEqual(list(value.shape), [1, 1])
