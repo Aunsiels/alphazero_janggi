@@ -49,6 +49,7 @@ class NNPlayer(RandomMCTSPlayer):
         actions = self.game.get_current_actions()
         features = self.game.get_features()
         features = torch.unsqueeze(features, 0)
+        features = features.to(DEVICE)
         symm_x, symm_y = get_symmetries(self.game.current_player)
         with torch.no_grad():
             policy, value = self.janggi_net(features)

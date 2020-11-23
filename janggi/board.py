@@ -299,7 +299,7 @@ class Board:
         if color == Color.RED:
             features[7 * 2, :, :] = 1
         features[7 * 2 + 1, :, :] = n_round
-        features = features.to(DEVICE)
+        # features = features.to(DEVICE)
         return features
 
 

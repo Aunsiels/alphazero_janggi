@@ -45,7 +45,8 @@ class MCTSNode:
             if total_temp != 0:
                 policy[action.get_features(symmetry_x, symmetry_y),
                        action.get_x_from(symmetry_x), action.get_y_from(symmetry_y)] = value / total_temp
-        return policy.to(DEVICE)
+        # return policy.to(DEVICE)
+        return policy
 
 
 class MCTS:
