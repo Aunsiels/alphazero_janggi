@@ -25,7 +25,7 @@ SUPERVISED_GAMES_FREQ = 1000
 
 LOG_PRINT_FREQ = 1000
 
-BATCH_SIZE = 5
+BATCH_SIZE = 16
 
 ASYNCHRONOUS = False
 
@@ -198,13 +198,18 @@ class Trainer:
 
     def train_and_fight(self, examples):
         self.train(examples)
+        self.organize_fight()
+
+        self.model_saver.save_weights(self.predictor, optimizer=self.optimizer)
+        self.model_saver.rename_last_episode()
+
+    def organize_fight(self):
         player_red = RandomPlayer(Color.RED)
         player_blue = NNPlayer(Color.BLUE, n_simulations=self.n_simulations, janggi_net=self.predictor,
                                temperature_start=0.01, temperature_threshold=30, temperature_end=0.01)
         fight(player_blue,
               player_red,
               self.iter_max)
-
         player_red = RandomMCTSPlayer(Color.RED, n_simulations=self.n_simulations_opponent,
                                       temperature_start=0.01, temperature_threshold=30, temperature_end=0.01)
         player_blue = NNPlayer(Color.BLUE, n_simulations=self.n_simulations, janggi_net=self.predictor,
@@ -212,9 +217,6 @@ class Trainer:
         fight(player_blue,
               player_red,
               self.iter_max)
-
-        self.model_saver.save_weights(self.predictor, optimizer=self.optimizer)
-        self.model_saver.rename_last_episode()
 
     def train(self, examples):
         criterion = JanggiLoss()
@@ -229,18 +231,18 @@ class Trainer:
                 self.optimizer.zero_grad()
                 board = board.to(DEVICE)
                 policy, value_predicted = self.predictor(board)
-                value_predicted = value_predicted.view(-1)
+                value_predicted = value_predicted.view(-1, 1)
                 policy = policy.to(DEVICE)
                 value_predicted = value_predicted.to(DEVICE)
                 actions = actions.to(DEVICE)
-                value = value.to(DEVICE)
+                value = value.view(-1, 1).to(DEVICE)
                 loss = criterion((policy, value_predicted), (actions, value))
                 loss.backward()
                 self.optimizer.step()
                 running_loss += loss.item()
                 if i % LOG_PRINT_FREQ == LOG_PRINT_FREQ - 1:
                     print('[%d, %5d] loss: %.3f' %
-                          (epoch + 1, i + 1, running_loss / LOG_PRINT_FREQ / BATCH_SIZE))
+                          (epoch + 1, i + 1, running_loss / LOG_PRINT_FREQ))
                     running_loss = 0.0
 
 

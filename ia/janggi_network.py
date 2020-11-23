@@ -126,6 +126,9 @@ class JanggiLoss(nn.Module):
         super().__init__()
 
     def forward(self, output, target):
-        policy_found = target[0].view(-1)
-        policy_guessed = output[0].view(-1)
-        return sum((output[1] - target[1]) ** 2 - torch.dot(policy_found, torch.log(policy_guessed)))
+        policy_found = target[0].view(-1, ACTION_SIZE * BOARD_WIDTH * BOARD_HEIGHT)
+        policy_guessed = output[0].view(-1, ACTION_SIZE * BOARD_WIDTH * BOARD_HEIGHT)
+        loss_value = (output[1] - target[1]) ** 2
+        loss_policy = torch.bmm(policy_found.view(-1, 1, ACTION_SIZE * BOARD_WIDTH * BOARD_HEIGHT),
+                                torch.log(policy_guessed).view(-1, ACTION_SIZE * BOARD_WIDTH * BOARD_HEIGHT, 1))
+        return (loss_value - loss_policy).view(-1).mean()

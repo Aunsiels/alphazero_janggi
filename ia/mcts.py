@@ -118,6 +118,4 @@ class MCTS:
             action = random.choices([x[0] for x in items], proba)[0]
         else:
             action = None
-        #random.shuffle(items)
-        #action = max(items, key=lambda x: x[1])[0]
         return action
