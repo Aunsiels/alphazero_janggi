@@ -57,11 +57,17 @@ class NNPlayer(RandomMCTSPlayer):
             for action in actions:
                 value_policy_action = policy[0, action.get_features(symm_x, symm_y), action.get_x_from(symm_x),
                                              action.get_y_from(symm_y)].detach().item()
-                actions_proba[action] = value_policy_action
                 total += value_policy_action
             if total != 0:
                 for action in actions:
-                    actions_proba[action] /= total
+                    value_policy_action = policy[0, action.get_features(symm_x, symm_y), action.get_x_from(symm_x),
+                                                 action.get_y_from(symm_y)].detach().item()
+                    actions_proba[action] = value_policy_action / total
+            else:
+                for action in actions:
+                    value_policy_action = policy[0, action.get_features(symm_x, symm_y), action.get_x_from(symm_x),
+                                                 action.get_y_from(symm_y)].detach().item()
+                    actions_proba[action] = value_policy_action
             value = value[0, 0].detach().item()
         return actions_proba, value
 
