@@ -4,7 +4,7 @@ from ia.janggi_network import JanggiNetwork
 from ia.mcts import MCTS, MCTSNode
 from janggi.board import Board
 from janggi.game import Game
-from janggi.player import Player, RandomPlayer
+from janggi.player import Player
 from janggi.utils import Color, DEVICE, get_symmetries
 
 
@@ -41,9 +41,9 @@ class RandomMCTSPlayer(Player):
 
 class NNPlayer(RandomMCTSPlayer):
 
-    def __init__(self, color, c_puct=4, n_simulations=800, current_node=None, janggi_net=JanggiNetwork(), temperature_start=1, temperature_threshold=30, temperature_end=1):
+    def __init__(self, color, c_puct=4, n_simulations=800, current_node=None, janggi_net=None, temperature_start=1, temperature_threshold=30, temperature_end=1):
         super().__init__(color, c_puct, n_simulations, current_node, temperature_start, temperature_threshold, temperature_end)
-        self.janggi_net = janggi_net.to(DEVICE)
+        self.janggi_net = janggi_net or JanggiNetwork()
 
     def predict(self):
         actions = self.game.get_current_actions()

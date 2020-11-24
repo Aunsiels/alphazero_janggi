@@ -1,6 +1,7 @@
 import os
 import random
 import time
+import multiprocessing as mp
 
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -15,19 +16,18 @@ from janggi.game import Game
 from janggi.player import RandomPlayer
 from janggi.utils import Color, DEVICE
 
-import multiprocessing as mp
-
 LEARNING_RATE = 0.001
 
 EPOCH_NUMBER = 1
 
-SUPERVISED_GAMES_FREQ = 1000
+SUPERVISED_GAMES_FREQ = 30000
 
 LOG_PRINT_FREQ = 1000
 
 BATCH_SIZE = 16
 
-ASYNCHRONOUS = False
+ASYNCHRONOUS = True
+POOL_NUMBER = 4
 
 
 def set_winner(examples, winner):
@@ -110,8 +110,12 @@ class Trainer:
                 examples = self.model_saver.load_last_episode()
             else:
                 if ASYNCHRONOUS:
-                    with mp.Pool(3) as pool:
-                        episodes = pool.map(run_episode, [self] * n_episodes)
+                    mp.set_start_method('spawn')
+                    self.predictor.share_memory()
+                    with mp.Pool(POOL_NUMBER) as pool:
+                        episodes = pool.map(run_episode_independant, [(self.predictor,
+                                                                       self.n_simulations,
+                                                                       self.iter_max)] * n_episodes)
                     examples = [x for episode in episodes for x in episode]
                 else:
                     examples = []
@@ -222,8 +226,11 @@ class Trainer:
         self.predictor.train()
         criterion = JanggiLoss()
         dataset = ExampleDataset(examples)
-        dataloader = DataLoader(dataset, batch_size=BATCH_SIZE,
-                                shuffle=True, num_workers=0)
+        if examples:
+            dataloader = DataLoader(dataset, batch_size=BATCH_SIZE,
+                                    shuffle=True, num_workers=0)
+        else:
+            dataloader = examples
 
         for epoch in range(EPOCH_NUMBER):
             running_loss = 0.0
@@ -281,6 +288,14 @@ class ModelSaver:
             maxi = max(maxi, int(filename[len("episode_"):]))
         return maxi
 
+    def get_last_episode_done(self):
+        maxi = -1
+        for filename in os.listdir(self.episode_path):
+            if "done" not in filename:
+                continue
+            maxi = max(maxi, int(filename[len("episode_done_"):]))
+        return maxi
+
     def get_last_weight_index(self):
         maxi = -1
         for filename in os.listdir(self.weights_path):
@@ -336,13 +351,76 @@ class ModelSaver:
         last_index = self.get_last_episode_index()
         if last_index == -1:
             return
+        last_index_done = self.get_last_episode_done()
+        if last_index_done == -1:
+            last_index_done = 0
+        else:
+            last_index_done += 1
         os.rename(self.episode_path + "episode_" + str(last_index),
-                  self.episode_path + "episode_done_" + str(last_index))
+                  self.episode_path + "episode_done_" + str(last_index_done))
 
 
 def run_episode(trainer):
     print("Starting episode")
     begin_time = time.time()
     examples = trainer.run_episode()
+    print("Time Episode: ", time.time() - begin_time)
+    return examples
+
+
+def run_episode_independant(args):
+    print("Starting episode")
+    begin_time = time.time()
+    predictor, n_simulations, iter_max = args
+    examples = []
+    start_blue = random.choice(["won", "sang", "yang", "gwee"])
+    start_red = random.choice(["won", "sang", "yang", "gwee"])
+    board = Board(start_blue=start_blue, start_red=start_red)
+    initial_node = MCTSNode(is_initial=True)
+    player_blue = NNPlayer(Color.BLUE, n_simulations=n_simulations,
+                           current_node=initial_node,
+                           janggi_net=predictor,
+                           temperature_start=1,
+                           temperature_threshold=30,
+                           temperature_end=0.01)
+    player_red = NNPlayer(Color.RED,
+                          n_simulations=n_simulations,
+                          current_node=initial_node,
+                          janggi_net=predictor,
+                          temperature_start=1,
+                          temperature_threshold=30,
+                          temperature_end=0.01)
+    game = Game(player_blue, player_red, board)
+    while not game.is_finished(iter_max):
+        new_action = game.get_next_action()
+        game.actions.append(new_action)
+        if game.current_player == Color.BLUE:
+            examples.append([board.get_features(game.current_player, game.round),
+                             player_blue.current_node.get_policy(game.current_player),
+                             Color.BLUE])
+            examples.append([board.get_features(game.current_player, game.round, data_augmentation=True),
+                             player_blue.current_node.get_policy(game.current_player, data_augmentation=True),
+                             Color.BLUE])
+        else:
+            examples.append([board.get_features(game.current_player, game.round, data_augmentation=True),
+                             player_red.current_node.get_policy(game.current_player, data_augmentation=True),
+                             Color.RED])
+            examples.append([board.get_features(game.current_player, game.round),
+                             player_red.current_node.get_policy(game.current_player),
+                             Color.RED])
+        game.board.apply_action(new_action)
+        game.switch_player()
+        game.board.invalidate_action_cache(new_action)  # Try to reduce memory usage
+        game.round += 1
+    if not game.board.is_finished(game.current_player):
+        score_BLUE = game.board.get_score(Color.BLUE)
+        score_RED = game.board.get_score(Color.RED)
+        if score_BLUE > score_RED:
+            winner = Color.BLUE
+        else:
+            winner = Color.RED
+    else:
+        winner = Color(-game.current_player.value)
+    set_winner(examples, winner)
     print("Time Episode: ", time.time() - begin_time)
     return examples

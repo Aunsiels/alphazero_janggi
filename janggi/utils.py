@@ -16,6 +16,7 @@ if torch.cuda.is_available():
 else:
     DEV = "cpu"
 DEVICE = torch.device(DEV)
+CPU_DEVICE = torch.device("cpu")
 
 
 def get_symmetries(current_player, data_augmentation=False):

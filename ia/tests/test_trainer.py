@@ -14,8 +14,12 @@ class TestTrainer(unittest.TestCase):
             self.assertIn(example[2], [-1, 1])
 
     def test_learn(self):
-        trainer = Trainer(JanggiNetwork(), n_simulations=10, iter_max=30, n_simulation_opponent=800)
+        trainer = Trainer(JanggiNetwork(), n_simulations=100, iter_max=30, n_simulation_opponent=10)
         trainer.learn_policy(n_iterations=1, n_episodes=10)
+
+    def test_fight(self):
+        trainer = Trainer(JanggiNetwork(), n_simulations=10, iter_max=30, n_simulation_opponent=10)
+        trainer.train_and_fight([])
 
 
 if __name__ == '__main__':

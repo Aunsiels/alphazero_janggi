@@ -184,6 +184,25 @@ class BoardTest(unittest.TestCase):
         for _ in range(1000):
             self.test_action_features(no_sum=True)
 
+    def perf_for_one_piece(self, piece):
+        for x in range(BOARD_HEIGHT):
+            for y in range(BOARD_WIDTH):
+                if self.board.get(x, y) is not None:
+                    continue
+                for color in [Color.RED, Color.BLUE]:
+                    self.board.set(x, y, piece(x, y, color, self.board))
+                    self.board.get(x, y).get_actions()
+                    self.board.set(x, y, None)
+                    self._current_action_cache_node = ActionCacheNode(None)
+
+    def test_perf_chariot(self):
+        for _ in range(1000):
+            self.perf_for_one_piece(Chariot)
+
+    def test_perf_cannon(self):
+        for _ in range(10000):
+            self.perf_for_one_piece(Cannon)
+
     def test_read(self):
         for x in range(BOARD_HEIGHT):
             for y in range(BOARD_WIDTH):
