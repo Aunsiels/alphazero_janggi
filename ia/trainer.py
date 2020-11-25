@@ -1,7 +1,6 @@
 import os
 import random
 import time
-import multiprocessing as mp
 
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -26,9 +25,6 @@ LOG_PRINT_FREQ = 1000
 
 BATCH_SIZE = 16
 
-ASYNCHRONOUS = True
-POOL_NUMBER = 4
-
 
 def set_winner(examples, winner):
     for example in examples:
@@ -43,6 +39,7 @@ def set_winner(examples, winner):
 class Trainer:
 
     def __init__(self, predictor, n_simulations=800, iter_max=200, n_simulation_opponent=800, dir_base="model"):
+        print("Setting trainer")
         self.predictor = predictor.to(DEVICE)
         self.n_simulations = n_simulations
         self.iter_max = iter_max
@@ -109,20 +106,11 @@ class Trainer:
             if self.model_saver.has_last_episode():
                 examples = self.model_saver.load_last_episode()
             else:
-                if ASYNCHRONOUS:
-                    mp.set_start_method('spawn')
-                    self.predictor.share_memory()
-                    with mp.Pool(POOL_NUMBER) as pool:
-                        episodes = pool.map(run_episode_independant, [(self.predictor,
-                                                                       self.n_simulations,
-                                                                       self.iter_max)] * n_episodes)
-                    examples = [x for episode in episodes for x in episode]
-                else:
-                    examples = []
-                    for ep in range(n_episodes):
-                        begin_time = time.time()
-                        examples += self.run_episode()
-                        print("Time Episode", ep, ": ", time.time() - begin_time)
+                examples = []
+                for ep in range(n_episodes):
+                    begin_time = time.time()
+                    examples += self.run_episode()
+                    print("Time Episode", ep, ": ", time.time() - begin_time)
                 self.model_saver.save_episodes(examples)
             self.train_and_fight(examples)
 
