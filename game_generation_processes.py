@@ -1,7 +1,7 @@
 import time
 
 import numpy as np
-from multiprocessing import shared_memory, Process, Lock
+from multiprocessing import shared_memory, Process
 from multiprocessing import current_process
 
 import torch
@@ -11,7 +11,7 @@ from ia.janggi_network import JanggiNetwork
 from ia.trainer import ModelSaver, run_episode_independant
 from janggi.utils import BOARD_HEIGHT, BOARD_WIDTH, DEVICE
 
-N_POOLS = 20
+N_POOLS = 2
 N_SIMULATIONS = 400
 ITER_MAX = 200
 N_EPISODES = 100
@@ -30,9 +30,6 @@ DIMS = (BATCH_SIZE * N_BUFFERS * 2 + 1 + 1,  # 2 reading buffers, 2 writing buff
 CURRENT_INDEX = (0, 0, 0, 0)
 
 
-lock = Lock()
-
-
 def create_shared_block():
     block = np.zeros(DIMS, dtype=np.float32)
     block[CURRENT_INDEX] = 0
@@ -42,7 +39,7 @@ def create_shared_block():
     return shm
 
 
-def send_tensor(shr_name, tensor):
+def send_tensor(shr_name, tensor, lock):
     existing_shm = shared_memory.SharedMemory(name=shr_name)
     np_array = np.ndarray(DIMS, dtype=np.float32, buffer=existing_shm.buf)
     while True:
@@ -60,7 +57,7 @@ def send_tensor(shr_name, tensor):
     return current_index
 
 
-def read_result(shr_name, current_index):
+def read_result(shr_name, current_index, lock):
     existing_shm = shared_memory.SharedMemory(name=shr_name)
     np_array = np.ndarray(DIMS, dtype=np.float32, buffer=existing_shm.buf)
     while True:
@@ -84,7 +81,7 @@ def get_policy_value(model, features):
     return policy, value
 
 
-def write_result(shr_name, previous_index, model):
+def write_result(shr_name, previous_index, model, lock):
     existing_shm = shared_memory.SharedMemory(name=shr_name)
     np_array = np.ndarray(DIMS, dtype=np.float32, buffer=existing_shm.buf)
     while True:
@@ -131,27 +128,23 @@ def get_model():
     return model
 
 
-def predictor_loop(shr_name):
+def predictor_loop(shr_name, lock):
     current_index = 0
     model = get_model()
     while True:
-        current_index = write_result(shr_name, current_index, model)
+        current_index = write_result(shr_name, current_index, model, lock)
 
 
 class ProcessPredictor:
 
-    def __init__(self, shr_name):
+    def __init__(self, shr_name, lock):
         self.shr_name = shr_name
+        self.lock = lock
 
     def __call__(self, features):
-        current_index = send_tensor(self.shr_name, features)
-        result = read_result(self.shr_name, current_index)
+        current_index = send_tensor(self.shr_name, features, self.lock)
+        result = read_result(self.shr_name, current_index, self.lock)
         return result
-
-
-def init(lock_temp):
-    global lock
-    lock = lock_temp
 
 
 if __name__ == "__main__":
@@ -159,16 +152,19 @@ if __name__ == "__main__":
         mp.set_start_method("spawn", force=True)
         print("Creating shared block")
         shr = create_shared_block()
-        predictor = ProcessPredictor(shr.name)
+        manager = mp.Manager()
+        lock = manager.Lock()
+        predictor = ProcessPredictor(shr.name, lock)
         model_saver = ModelSaver()
 
         print("Start Predictor Process")
-        predictor_process = Process(target=predictor_loop, args=(shr.name,))
+        predictor_process = Process(target=predictor_loop, args=(shr.name, lock))
         predictor_process.start()
+        time.sleep(5)
 
         for _ in range(N_ITER_EPISODE):
             begin_time = time.time()
-            with mp.Pool(N_POOLS, initializer=init, initargs=(lock,)) as pool:
+            with mp.Pool(N_POOLS) as pool:
                 episodes = pool.map(run_episode_independant,
                                     [(predictor, N_SIMULATIONS, ITER_MAX) for _ in range(N_EPISODES)])
             examples = [x for episode in episodes for x in episode]
