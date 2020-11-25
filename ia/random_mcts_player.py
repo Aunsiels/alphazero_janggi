@@ -44,12 +44,17 @@ class NNPlayer(RandomMCTSPlayer):
     def __init__(self, color, c_puct=4, n_simulations=800, current_node=None, janggi_net=None, temperature_start=1, temperature_threshold=30, temperature_end=1):
         super().__init__(color, c_puct, n_simulations, current_node, temperature_start, temperature_threshold, temperature_end)
         self.janggi_net = janggi_net or JanggiNetwork()
+        if isinstance(self.janggi_net, JanggiNetwork):
+            self._is_predictor = True
+        else:
+            self._is_predictor = False
 
     def predict(self):
         actions = self.game.get_current_actions()
         features = self.game.get_features()
         features = torch.unsqueeze(features, 0)
-        features = features.to(DEVICE)
+        if self._is_predictor:
+            features = features.to(DEVICE)
         symm_x, symm_y = get_symmetries(self.game.current_player)
         with torch.no_grad():
             policy, value = self.janggi_net(features)

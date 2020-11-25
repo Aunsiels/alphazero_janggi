@@ -101,14 +101,14 @@ def write_result(shr_name, previous_index, model, lock):
     policy, value = get_policy_value(model, features)
     lock.acquire()
     if current_index > previous_index:
-        np_array[1 + previous_index + N_BUFFERS * BATCH_SIZE: 1 + current_index + N_BUFFERS * BATCH_SIZE, :, :, :] = policy
-        np_array[-1, previous_index:current_index, 0, 0] = value.view(-1)
+        np_array[1 + previous_index + N_BUFFERS * BATCH_SIZE: 1 + current_index + N_BUFFERS * BATCH_SIZE, :, :, :] = policy.cpu()
+        np_array[-1, previous_index:current_index, 0, 0] = value.view(-1).cpu()
         np_array[0, previous_index + 1:current_index + 1, 0, 0] = 1.0
     if current_index < previous_index:
         np_array[np.r_[1 + N_BUFFERS * BATCH_SIZE: 1 + current_index + N_BUFFERS * BATCH_SIZE,
                        1 + previous_index + N_BUFFERS * BATCH_SIZE: 1 + 2 * BATCH_SIZE * N_BUFFERS],
-                 :N_FEATURES_POLICY, :, :] = policy
-        np_array[-1, np.r_[0: current_index, previous_index:BATCH_SIZE * N_BUFFERS], 0, 0] = value.view(-1)
+                 :N_FEATURES_POLICY, :, :] = policy.cpu()
+        np_array[-1, np.r_[0: current_index, previous_index:BATCH_SIZE * N_BUFFERS], 0, 0] = value.view(-1).cpu()
         np_array[0, np.r_[1:current_index + 1, previous_index + 1:1 + BATCH_SIZE * N_BUFFERS], 0, 0] = 1.0
     lock.release()
     existing_shm.close()
