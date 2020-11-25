@@ -5,7 +5,7 @@ from multiprocessing import shared_memory, Process, Lock
 from multiprocessing import current_process
 
 import torch
-import torch.multiprocessing as mp
+import multiprocessing as mp
 
 from ia.janggi_network import JanggiNetwork
 from ia.trainer import ModelSaver, run_episode_independant
@@ -156,8 +156,7 @@ def init(lock_temp):
 
 if __name__ == "__main__":
     if current_process().name == "MainProcess":
-        if mp.get_start_method() != "spawn":
-            mp.set_start_method("spawn")
+        mp.set_start_method("spawn", force=True)
         print("Creating shared block")
         shr = create_shared_block()
         predictor = ProcessPredictor(shr.name)

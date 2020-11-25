@@ -15,6 +15,9 @@ from janggi.game import Game
 from janggi.player import RandomPlayer
 from janggi.utils import Color, DEVICE
 
+from multiprocessing import current_process
+
+
 LEARNING_RATE = 0.001
 
 EPOCH_NUMBER = 1
@@ -357,7 +360,7 @@ def run_episode(trainer):
 
 
 def run_episode_independant(args):
-    print("Starting episode")
+    print("Starting episode", current_process().name)
     begin_time = time.time()
     predictor, n_simulations, iter_max = args
     examples = []
