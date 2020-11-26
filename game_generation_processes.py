@@ -1,4 +1,5 @@
 import time
+import logging
 
 import numpy as np
 from multiprocessing import shared_memory, Process
@@ -6,6 +7,8 @@ from multiprocessing import current_process
 
 import torch
 import multiprocessing as mp
+logger = mp.log_to_stderr()
+logger.setLevel(logging.INFO)
 
 from ia.janggi_network import JanggiNetwork
 from ia.trainer import ModelSaver, run_episode_independant
