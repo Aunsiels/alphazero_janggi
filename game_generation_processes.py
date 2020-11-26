@@ -11,6 +11,8 @@ from ia.janggi_network import JanggiNetwork
 from ia.trainer import ModelSaver, run_episode_independant
 from janggi.utils import BOARD_HEIGHT, BOARD_WIDTH, DEVICE
 
+N_RESIDUAL = 20
+
 N_POOLS = 2
 N_SIMULATIONS = 400
 ITER_MAX = 200
@@ -43,16 +45,14 @@ def send_tensor(shr_name, tensor, lock):
     existing_shm = shared_memory.SharedMemory(name=shr_name)
     np_array = np.ndarray(DIMS, dtype=np.float32, buffer=existing_shm.buf)
     while True:
-        lock.acquire()
-        current_index = int(np_array[CURRENT_INDEX])
-        free_status = np_array[0, current_index + 1, 0, 1]
-        if free_status < 0.1:
-            np_array[CURRENT_INDEX] = (current_index + 1) % (BATCH_SIZE * N_BUFFERS)
-            np_array[1 + current_index, :N_FEATURES, :, :] = tensor.numpy()
-            np_array[0, current_index + 1, 0, 1] = 1
-            lock.release()
-            break
-        lock.release()
+        with lock:
+            current_index = int(np_array[CURRENT_INDEX])
+            free_status = np_array[0, current_index + 1, 0, 1]
+            if free_status < 0.1:
+                np_array[CURRENT_INDEX] = (current_index + 1) % (BATCH_SIZE * N_BUFFERS)
+                np_array[1 + current_index, :N_FEATURES, :, :] = tensor.numpy()
+                np_array[0, current_index + 1, 0, 1] = 1
+                break
     existing_shm.close()
     return current_index
 
@@ -61,15 +61,13 @@ def read_result(shr_name, current_index, lock):
     existing_shm = shared_memory.SharedMemory(name=shr_name)
     np_array = np.ndarray(DIMS, dtype=np.float32, buffer=existing_shm.buf)
     while True:
-        lock.acquire()
-        if np_array[0, current_index + 1, 0, 0] > 0.1:
-            policy = torch.tensor(np_array[1 + N_BUFFERS * BATCH_SIZE + current_index:2 + N_BUFFERS * BATCH_SIZE + current_index])
-            value = torch.tensor(np_array[-1, current_index:current_index + 1, 0:1, 0])
-            np_array[0, current_index + 1, 0, 0] = 0
-            np_array[0, current_index + 1, 0, 1] = 0
-            lock.release()
-            break
-        lock.release()
+        with lock:
+            if np_array[0, current_index + 1, 0, 0] > 0.1:
+                policy = torch.tensor(np_array[1 + N_BUFFERS * BATCH_SIZE + current_index:2 + N_BUFFERS * BATCH_SIZE + current_index])
+                value = torch.tensor(np_array[-1, current_index:current_index + 1, 0:1, 0])
+                np_array[0, current_index + 1, 0, 0] = 0
+                np_array[0, current_index + 1, 0, 1] = 0
+                break
     existing_shm.close()
     return policy, value
 
@@ -85,38 +83,34 @@ def write_result(shr_name, previous_index, model, lock):
     existing_shm = shared_memory.SharedMemory(name=shr_name)
     np_array = np.ndarray(DIMS, dtype=np.float32, buffer=existing_shm.buf)
     while True:
-        lock.acquire()
-        current_index = int(np_array[CURRENT_INDEX])
-        if current_index > previous_index:
-            features = np_array[1 + previous_index: 1 + current_index, :N_FEATURES, :, :]
-            lock.release()
-            break
-        if current_index < previous_index:
-            features = np_array[np.r_[1: 1 + current_index,
-                                      1 + previous_index: 1 + BATCH_SIZE * N_BUFFERS], :N_FEATURES, :, :]
-            lock.release()
-            break
-        lock.release()
+        with lock:
+            current_index = int(np_array[CURRENT_INDEX])
+            if current_index > previous_index:
+                features = np_array[1 + previous_index: 1 + current_index, :N_FEATURES, :, :]
+                break
+            if current_index < previous_index:
+                features = np_array[np.r_[1: 1 + current_index,
+                                          1 + previous_index: 1 + BATCH_SIZE * N_BUFFERS], :N_FEATURES, :, :]
+                break
     features = torch.tensor(features)
     policy, value = get_policy_value(model, features)
-    lock.acquire()
-    if current_index > previous_index:
-        np_array[1 + previous_index + N_BUFFERS * BATCH_SIZE: 1 + current_index + N_BUFFERS * BATCH_SIZE, :, :, :] = policy.cpu()
-        np_array[-1, previous_index:current_index, 0, 0] = value.view(-1).cpu()
-        np_array[0, previous_index + 1:current_index + 1, 0, 0] = 1.0
-    if current_index < previous_index:
-        np_array[np.r_[1 + N_BUFFERS * BATCH_SIZE: 1 + current_index + N_BUFFERS * BATCH_SIZE,
-                       1 + previous_index + N_BUFFERS * BATCH_SIZE: 1 + 2 * BATCH_SIZE * N_BUFFERS],
-                 :N_FEATURES_POLICY, :, :] = policy.cpu()
-        np_array[-1, np.r_[0: current_index, previous_index:BATCH_SIZE * N_BUFFERS], 0, 0] = value.view(-1).cpu()
-        np_array[0, np.r_[1:current_index + 1, previous_index + 1:1 + BATCH_SIZE * N_BUFFERS], 0, 0] = 1.0
-    lock.release()
+    with lock:
+        if current_index > previous_index:
+            np_array[1 + previous_index + N_BUFFERS * BATCH_SIZE: 1 + current_index + N_BUFFERS * BATCH_SIZE, :, :, :] = policy.cpu()
+            np_array[-1, previous_index:current_index, 0, 0] = value.view(-1).cpu()
+            np_array[0, previous_index + 1:current_index + 1, 0, 0] = 1.0
+        if current_index < previous_index:
+            np_array[np.r_[1 + N_BUFFERS * BATCH_SIZE: 1 + current_index + N_BUFFERS * BATCH_SIZE,
+                           1 + previous_index + N_BUFFERS * BATCH_SIZE: 1 + 2 * BATCH_SIZE * N_BUFFERS],
+                     :N_FEATURES_POLICY, :, :] = policy.cpu()
+            np_array[-1, np.r_[0: current_index, previous_index:BATCH_SIZE * N_BUFFERS], 0, 0] = value.view(-1).cpu()
+            np_array[0, np.r_[1:current_index + 1, previous_index + 1:1 + BATCH_SIZE * N_BUFFERS], 0, 0] = 1.0
     existing_shm.close()
     return current_index
 
 
 def get_model():
-    model = JanggiNetwork(20)
+    model = JanggiNetwork(N_RESIDUAL)
 
     def load_latest_model():
         model_saver_temp = ModelSaver()

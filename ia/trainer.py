@@ -1,3 +1,4 @@
+import copy
 import os
 import random
 import time
@@ -17,10 +18,15 @@ from janggi.utils import Color, DEVICE
 
 from multiprocessing import current_process
 
+WAINTING_TIME_IF_NO_EPISODE = 1000
 
 LEARNING_RATE = 0.001
 
 EPOCH_NUMBER = 1
+EPOCH_NUMBER_CONTINUOUS = 1
+
+N_FIGHTS = 10
+VICTORY_THRESHOLD = 55
 
 SUPERVISED_GAMES_FREQ = 30000
 
@@ -191,6 +197,58 @@ class Trainer:
         print("Start training")
         self.train_and_fight(examples_all)
 
+    def continuous_learning(self):
+        while True:
+            if self.model_saver.has_last_episode():
+                print("Start new learning")
+                self.continuous_learning_once()
+            else:
+                print("Waiting for more episodes")
+                time.sleep(WAINTING_TIME_IF_NO_EPISODE)
+
+    def continuous_learning_once(self):
+        # First, train
+        for _ in range(EPOCH_NUMBER_CONTINUOUS):
+            for examples in self.model_saver.all_episodes_iterators():
+                self.train(examples)
+        # Then, fight!
+        old_model = copy.deepcopy(self.predictor)
+        self.model_saver.load_latest_model(old_model, None)
+        old_model.to(DEVICE)
+        victories = 0
+        print("Start the fights!")
+        for i in range(N_FIGHTS):
+            new_player = NNPlayer(Color.BLUE,
+                                  n_simulations=self.n_simulations,
+                                  janggi_net=self.predictor,
+                                  temperature_start=0.01,
+                                  temperature_threshold=30,
+                                  temperature_end=0.01)
+            old_player = NNPlayer(Color.BLUE,
+                                  n_simulations=self.n_simulations,
+                                  janggi_net=old_model,
+                                  temperature_start=0.01,
+                                  temperature_threshold=30,
+                                  temperature_end=0.01)
+            if i < N_FIGHTS / 2:
+                winner = fight(new_player, old_player, self.iter_max)
+                if winner == Color.BLUE:
+                    victories += 1
+            else:
+                winner = fight(old_player, new_player, self.iter_max)
+                if winner == Color.RED:
+                    victories += 1
+        victory_percentage = victories / N_FIGHTS * 100
+        if victory_percentage > VICTORY_THRESHOLD:
+            # Replace model
+            print("The model was good enough", victory_percentage)
+            self.model_saver.save_weights(self.predictor, optimizer=self.optimizer)
+            self.model_saver.rename_all_episodes()
+        else:
+            # We take back the old model
+            print("The model was not good enough", victory_percentage)
+            self.model_saver.load_latest_model(self.predictor, optimizer=self.optimizer)
+
     def train_and_fight(self, examples):
         self.train(examples)
         self.organize_fight()
@@ -265,26 +323,25 @@ class ModelSaver:
             os.mkdir(dir_base)
         if not os.path.isdir(dir_base + "/episodes"):
             os.mkdir(dir_base + "/episodes")
+        if not os.path.isdir(dir_base + "/episodes_done"):
+            os.mkdir(dir_base + "/episodes_done")
         if not os.path.isdir(dir_base + "/weights"):
             os.mkdir(dir_base + "/weights")
         self.model_path = dir_base + "/"
         self.episode_path = dir_base + "/episodes/"
+        self.episode_done_path = dir_base + "/episodes_done/"
         self.weights_path = dir_base + "/weights/"
 
     def get_last_episode_index(self):
         maxi = -1
         for filename in os.listdir(self.episode_path):
-            if "done" in filename:
-                continue
             maxi = max(maxi, int(filename[len("episode_"):]))
         return maxi
 
     def get_last_episode_done(self):
         maxi = -1
-        for filename in os.listdir(self.episode_path):
-            if "done" not in filename:
-                continue
-            maxi = max(maxi, int(filename[len("episode_done_"):]))
+        for filename in os.listdir(self.episode_done_path):
+            maxi = max(maxi, int(filename[len("episode_"):]))
         return maxi
 
     def get_last_weight_index(self):
@@ -338,17 +395,30 @@ class ModelSaver:
         print("Load previous episode")
         return torch.load(self.episode_path + "episode_" + str(last_index))
 
+    def all_episodes_iterators(self):
+        for filename in os.listdir(self.episode_path):
+            yield torch.load(self.episode_path + filename)
+
     def rename_last_episode(self):
         last_index = self.get_last_episode_index()
         if last_index == -1:
             return
+        self.rename_episode_by_index(last_index)
+
+    def rename_episode_by_index(self, last_index):
         last_index_done = self.get_last_episode_done()
         if last_index_done == -1:
             last_index_done = 0
         else:
             last_index_done += 1
         os.rename(self.episode_path + "episode_" + str(last_index),
-                  self.episode_path + "episode_done_" + str(last_index_done))
+                  self.episode_done_path + "episode_" + str(last_index_done))
+
+    def rename_all_episodes(self):
+        last_index = self.get_last_episode_index()
+        while last_index != -1:
+            self.rename_episode_by_index(last_index)
+            last_index = self.get_last_episode_index()
 
 
 def run_episode(trainer):
