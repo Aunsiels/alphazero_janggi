@@ -1,3 +1,5 @@
+import random
+
 import torch
 
 from ia.janggi_network import JanggiNetwork
@@ -105,7 +107,9 @@ def play_againt_normal(player_blue, n_simulations, iter_max):
 
 
 def fight(player_blue, player_red, iter_max):
-    board = Board()
+    start_blue = random.choice(["won", "sang", "yang", "gwee"])
+    start_red = random.choice(["won", "sang", "yang", "gwee"])
+    board = Board(start_blue=start_blue, start_red=start_red)
     game = Game(player_blue, player_red, board)
     winner = game.run_game(iter_max)
     print("Winner:", winner)
