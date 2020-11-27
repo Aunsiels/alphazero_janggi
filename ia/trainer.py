@@ -18,20 +18,28 @@ from janggi.utils import Color, DEVICE
 
 from multiprocessing import current_process
 
-WAINTING_TIME_IF_NO_EPISODE = 1000
-
+# Learning rate of the optimizer
 LEARNING_RATE = 0.001
 
+# Number of epoch when learning
 EPOCH_NUMBER = 1
+# Number of epoch when learning continuously
 EPOCH_NUMBER_CONTINUOUS = 1
+# When there is no episode to process, just wait
+WAINTING_TIME_IF_NO_EPISODE = 1000
 
-N_FIGHTS = 10
+# For check if a model is better than the previous one, we perform some fights
+N_FIGHTS = 100
+# If the new model wins more than a certain percentage of games, we update the current model
 VICTORY_THRESHOLD = 55
 
+# When learning with existing data, how many game do we consider at once (
 SUPERVISED_GAMES_FREQ = 30000
 
+# During training, how often do we print loss
 LOG_PRINT_FREQ = 1000
 
+# For training
 BATCH_SIZE = 16
 
 
@@ -209,8 +217,10 @@ class Trainer:
     def continuous_learning_once(self):
         # First, train
         for _ in range(EPOCH_NUMBER_CONTINUOUS):
+            all_examples = []
             for examples in self.model_saver.all_episodes_iterators():
-                self.train(examples)
+                all_examples += examples
+            self.train(all_examples)
         # Then, fight!
         old_model = copy.deepcopy(self.predictor)
         self.model_saver.load_latest_model(old_model, None)

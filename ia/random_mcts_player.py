@@ -7,6 +7,16 @@ from janggi.game import Game
 from janggi.player import Player
 from janggi.utils import Color, DEVICE, get_symmetries
 
+DEFAULT_TEMPERATURE_END = 1
+
+DEFAULT_TEMPERATURE_THRESHOLD = 30
+
+DEFAULT_TEMPERATURE_START = 1
+
+DEFAULT_N_SIMULATIONS = 800
+
+DEFAULT_C_PUCT = 4
+
 
 class RandomMCTSPlayer(Player):
 
@@ -25,7 +35,9 @@ class RandomMCTSPlayer(Player):
             del previous_node
         self.last_action_index = len(self.game.actions) - 1
 
-    def __init__(self, color, c_puct=4, n_simulations=800, current_node=None, temperature_start=1, temperature_threshold=30, temperature_end=1):
+    def __init__(self, color, c_puct=DEFAULT_C_PUCT, n_simulations=DEFAULT_N_SIMULATIONS, current_node=None,
+                 temperature_start=DEFAULT_TEMPERATURE_START, temperature_threshold=DEFAULT_TEMPERATURE_THRESHOLD,
+                 temperature_end=DEFAULT_TEMPERATURE_END):
         super().__init__(color)
         self.mcts = MCTS(c_puct, n_simulations, temperature_start, temperature_threshold, temperature_end)
         self.current_node = current_node or MCTSNode()
@@ -41,8 +53,12 @@ class RandomMCTSPlayer(Player):
 
 class NNPlayer(RandomMCTSPlayer):
 
-    def __init__(self, color, c_puct=4, n_simulations=800, current_node=None, janggi_net=None, temperature_start=1, temperature_threshold=30, temperature_end=1):
-        super().__init__(color, c_puct, n_simulations, current_node, temperature_start, temperature_threshold, temperature_end)
+    def __init__(self, color, c_puct=DEFAULT_C_PUCT, n_simulations=DEFAULT_N_SIMULATIONS, current_node=None,
+                 janggi_net=None,
+                 temperature_start=DEFAULT_TEMPERATURE_START, temperature_threshold=DEFAULT_TEMPERATURE_THRESHOLD,
+                 temperature_end=DEFAULT_TEMPERATURE_END):
+        super().__init__(color, c_puct, n_simulations, current_node,
+                         temperature_start, temperature_threshold, temperature_end)
         self.janggi_net = janggi_net or JanggiNetwork()
         if isinstance(self.janggi_net, JanggiNetwork):
             self._is_predictor = True

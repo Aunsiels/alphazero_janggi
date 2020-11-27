@@ -4,7 +4,7 @@ import random
 import torch
 import numpy as np
 
-from janggi.utils import DEVICE, get_symmetries
+from janggi.utils import get_symmetries
 
 
 class MCTSNode:
@@ -21,9 +21,9 @@ class MCTSNode:
     def set_up(self, probabiliies, current_player, actions):
         self.probabilities = probabiliies
         if self.is_initial:
-            dir = np.random.dirichlet([0.3] *  len(self.probabilities))
+            dirichlet_noise = np.random.dirichlet([0.3] * len(self.probabilities))
             for i, action in enumerate(self.probabilities):
-                self.probabilities[action] += dir[i]
+                self.probabilities[action] += dirichlet_noise[i]
         self.current_player = current_player
         self.q = dict()
         self.N = dict()

@@ -10,12 +10,12 @@ STRIDE_SIZE = 3
 OUT_CONV_POLICY = 2
 OUT_LINEAR_VALUE = 256
 
-N_RESIDUAL = 2
+N_RESIDUAL_DEFAULT = 2
 
 
 class JanggiNetwork(nn.Module):
 
-    def __init__(self, n_residual=N_RESIDUAL):
+    def __init__(self, n_residual=N_RESIDUAL_DEFAULT):
         super().__init__()
 
         self.first_layer = FirstLayerJanggiNetwork()
