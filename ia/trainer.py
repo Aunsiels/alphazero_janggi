@@ -106,15 +106,7 @@ class Trainer:
             game.switch_player()
             game.board.invalidate_action_cache(new_action)  # Try to reduce memory usage
             game.round += 1
-        if not game.board.is_finished(game.current_player):
-            score_BLUE = game.board.get_score(Color.BLUE)
-            score_RED = game.board.get_score(Color.RED)
-            if score_BLUE > score_RED:
-                winner = Color.BLUE
-            else:
-                winner = Color.RED
-        else:
-            winner = Color(-game.current_player.value)
+        winner = game.get_winner()
         set_winner(examples, winner)
         return examples
 
@@ -132,82 +124,86 @@ class Trainer:
             self.train_and_fight(examples)
 
     def learn_supervised(self, training_file):
-        examples_all = []
         print("Generate training data...")
-        game_number = 1
         with open(training_file) as f:
-            blue_starting = None
-            red_starting = None
-            board = None
-            is_blue = True
-            round = 0
-            examples = []
-            for line in f:
-                line = line.strip()
-                if line == "":
-                    if is_blue:
-                        winner = Color.RED
-                    else:
-                        winner = Color.BLUE
-                    set_winner(examples, winner)
-                    examples_all += examples
-                    # End game
-                    blue_starting = None
-                    red_starting = None
-                    board = None
-                    is_blue = True
-                    round = 0
-                    examples = []
-                    game_number += 1
-                    if game_number % SUPERVISED_GAMES_FREQ == 0:
-                        print("Start training")
-                        self.train_and_fight(examples_all)
-                        examples_all = []
-                        print("Generate training data...")
-                elif blue_starting is None:
-                    blue_starting = line
-                elif red_starting is None:
-                    red_starting = line
-                else:
-                    if board is None:
-                        board = Board(start_blue=blue_starting, start_red=red_starting)
-                    if line == "XXXX":
-                        action = None
-                        get_policy = get_none_action_policy
-                    else:
-                        action = Action(int(line[0]), int(line[1]), int(line[2]), int(line[3]))
-                        get_policy = action.get_policy
-                    if is_blue:
-                        examples.append([board.get_features(Color.BLUE, round),
-                                         get_policy(Color.BLUE),
-                                         Color.BLUE])
-                        examples.append([board.get_features(Color.BLUE, round, data_augmentation=True),
-                                         get_policy(Color.BLUE,
-                                                    data_augmentation=True),
-                                         Color.BLUE])
-                    else:
-                        examples.append([board.get_features(Color.RED, round, data_augmentation=True),
-                                         get_policy(Color.RED,
-                                                    data_augmentation=True),
-                                         Color.RED])
-                        examples.append([board.get_features(Color.RED, round),
-                                         get_policy(Color.RED),
-                                         Color.RED])
-                    board.apply_action(action)
-                    round += 1
-                    is_blue = not is_blue
-            if is_blue:
-                winner = Color.RED
-            else:
-                winner = Color.BLUE
-            set_winner(examples, winner)
-            examples_all += examples
+            examples_all = self._raw_to_examples(f)
         print("Start training")
         self.train_and_fight(examples_all)
 
+    def _raw_to_examples(self, line_iterator):
+        game_number = 1
+        examples_all = []
+        blue_starting = None
+        red_starting = None
+        board = None
+        is_blue = True
+        round = 0
+        examples = []
+        for line in line_iterator:
+            line = line.strip()
+            if line == "":
+                if is_blue:
+                    winner = Color.RED
+                else:
+                    winner = Color.BLUE
+                set_winner(examples, winner)
+                examples_all += examples
+                # End game
+                blue_starting = None
+                red_starting = None
+                board = None
+                is_blue = True
+                round = 0
+                examples = []
+                game_number += 1
+                if game_number % SUPERVISED_GAMES_FREQ == 0:
+                    print("Start training")
+                    self.train_and_fight(examples_all)
+                    examples_all = []
+                    print("Generate training data...")
+            elif blue_starting is None:
+                blue_starting = line
+            elif red_starting is None:
+                red_starting = line
+            else:
+                if board is None:
+                    board = Board(start_blue=blue_starting, start_red=red_starting)
+                if line == "XXXX":
+                    action = None
+                    get_policy = get_none_action_policy
+                else:
+                    action = Action(int(line[0]), int(line[1]), int(line[2]), int(line[3]))
+                    get_policy = action.get_policy
+                if is_blue:
+                    examples.append([board.get_features(Color.BLUE, round),
+                                     get_policy(Color.BLUE),
+                                     Color.BLUE])
+                    examples.append([board.get_features(Color.BLUE, round, data_augmentation=True),
+                                     get_policy(Color.BLUE,
+                                                data_augmentation=True),
+                                     Color.BLUE])
+                else:
+                    examples.append([board.get_features(Color.RED, round, data_augmentation=True),
+                                     get_policy(Color.RED,
+                                                data_augmentation=True),
+                                     Color.RED])
+                    examples.append([board.get_features(Color.RED, round),
+                                     get_policy(Color.RED),
+                                     Color.RED])
+                board.apply_action(action)
+                round += 1
+                is_blue = not is_blue
+        if is_blue:
+            winner = Color.RED
+        else:
+            winner = Color.BLUE
+        set_winner(examples, winner)
+        examples_all += examples
+        return examples_all
+
     def continuous_learning(self):
         while True:
-            if self.model_saver.has_last_episode():
+            if self.model_saver.has_last_episode_raw():
                 print("Start new learning")
                 self.continuous_learning_once()
             else:
@@ -217,9 +213,7 @@ class Trainer:
     def continuous_learning_once(self):
         # First, train
         for _ in range(EPOCH_NUMBER_CONTINUOUS):
-            all_examples = []
-            for examples in self.model_saver.all_episodes_iterators():
-                all_examples += examples
+            all_examples = self._raw_to_examples(self.model_saver.all_episodes_raw_iterators())
             self.train(all_examples)
         # Then, fight!
         old_model = copy.deepcopy(self.predictor)
@@ -253,7 +247,7 @@ class Trainer:
             # Replace model
             print("The model was good enough", victory_percentage)
             self.model_saver.save_weights(self.predictor, optimizer=self.optimizer)
-            self.model_saver.rename_all_episodes()
+            self.model_saver.rename_all_raw_episodes()
         else:
             # We take back the old model
             print("The model was not good enough", victory_percentage)
@@ -335,11 +329,17 @@ class ModelSaver:
             os.mkdir(dir_base + "/episodes")
         if not os.path.isdir(dir_base + "/episodes_done"):
             os.mkdir(dir_base + "/episodes_done")
+        if not os.path.isdir(dir_base + "/episodes_raw"):
+            os.mkdir(dir_base + "/episodes_raw")
+        if not os.path.isdir(dir_base + "/episodes_raw_done"):
+            os.mkdir(dir_base + "/episodes_raw_done")
         if not os.path.isdir(dir_base + "/weights"):
             os.mkdir(dir_base + "/weights")
         self.model_path = dir_base + "/"
         self.episode_path = dir_base + "/episodes/"
         self.episode_done_path = dir_base + "/episodes_done/"
+        self.episode_raw_path = dir_base + "/episodes_raw/"
+        self.episode_raw_done_path = dir_base + "/episodes_raw_done/"
         self.weights_path = dir_base + "/weights/"
 
     def get_last_episode_index(self):
@@ -348,9 +348,21 @@ class ModelSaver:
             maxi = max(maxi, int(filename[len("episode_"):]))
         return maxi
 
+    def get_last_episode_raw_index(self):
+        maxi = -1
+        for filename in os.listdir(self.episode_raw_path):
+            maxi = max(maxi, int(filename[len("episode_"):]))
+        return maxi
+
     def get_last_episode_done(self):
         maxi = -1
         for filename in os.listdir(self.episode_done_path):
+            maxi = max(maxi, int(filename[len("episode_"):]))
+        return maxi
+
+    def get_last_episode_raw_done(self):
+        maxi = -1
+        for filename in os.listdir(self.episode_raw_done_path):
             maxi = max(maxi, int(filename[len("episode_"):]))
         return maxi
 
@@ -363,6 +375,11 @@ class ModelSaver:
     def save_episodes(self, episodes):
         new_index = self.get_last_episode_index() + 1
         torch.save(episodes, self.episode_path + "episode_" + str(new_index))
+
+    def save_episodes_raw(self, episodes):
+        new_index = self.get_last_episode_raw_index() + 1
+        with open(self.episode_raw_path + "episode_" + str(new_index), "w") as f:
+            f.write("\n".join(episodes) + "\n")
 
     def save_weights(self, model, optimizer):
         new_index = self.get_last_weight_index() + 1
@@ -397,6 +414,9 @@ class ModelSaver:
     def has_last_episode(self):
         return self.get_last_episode_index() != -1
 
+    def has_last_episode_raw(self):
+        return self.get_last_episode_raw_index() != -1
+
     def load_last_episode(self):
         last_index = self.get_last_episode_index()
         if last_index == -1:
@@ -408,6 +428,12 @@ class ModelSaver:
     def all_episodes_iterators(self):
         for filename in os.listdir(self.episode_path):
             yield torch.load(self.episode_path + filename)
+
+    def all_episodes_raw_iterators(self):
+        for filename in os.listdir(self.episode_raw_path):
+            with open(self.episode_raw_path + filename) as f:
+                for line in f:
+                    yield line
 
     def rename_last_episode(self):
         last_index = self.get_last_episode_index()
@@ -424,11 +450,26 @@ class ModelSaver:
         os.rename(self.episode_path + "episode_" + str(last_index),
                   self.episode_done_path + "episode_" + str(last_index_done))
 
+    def rename_episode_raw_by_index(self, last_index):
+        last_index_done = self.get_last_episode_raw_done()
+        if last_index_done == -1:
+            last_index_done = 0
+        else:
+            last_index_done += 1
+        os.rename(self.episode_raw_path + "episode_" + str(last_index),
+                  self.episode_raw_done_path + "episode_" + str(last_index_done))
+
     def rename_all_episodes(self):
         last_index = self.get_last_episode_index()
         while last_index != -1:
             self.rename_episode_by_index(last_index)
             last_index = self.get_last_episode_index()
+
+    def rename_all_raw_episodes(self):
+        last_index = self.get_last_episode_raw_index()
+        while last_index != -1:
+            self.rename_episode_raw_by_index(last_index)
+            last_index = self.get_last_episode_raw_index()
 
 
 def run_episode(trainer):
@@ -483,15 +524,40 @@ def run_episode_independant(args):
         game.switch_player()
         game.board.invalidate_action_cache(new_action)  # Try to reduce memory usage
         game.round += 1
-    if not game.board.is_finished(game.current_player):
-        score_BLUE = game.board.get_score(Color.BLUE)
-        score_RED = game.board.get_score(Color.RED)
-        if score_BLUE > score_RED:
-            winner = Color.BLUE
-        else:
-            winner = Color.RED
-    else:
-        winner = Color(-game.current_player.value)
+    winner = game.get_winner()
     set_winner(examples, winner)
     print("Time Episode: ", time.time() - begin_time)
     return examples
+
+
+def run_episode_raw(args):
+    print("Starting episode", current_process().name)
+    begin_time = time.time()
+    predictor, n_simulations, iter_max = args
+    start_blue = random.choice(["won", "sang", "yang", "gwee"])
+    start_red = random.choice(["won", "sang", "yang", "gwee"])
+    board = Board(start_blue=start_blue, start_red=start_red)
+    initial_node = MCTSNode(is_initial=True)
+    player_blue = NNPlayer(Color.BLUE, n_simulations=n_simulations,
+                           current_node=initial_node,
+                           janggi_net=predictor,
+                           temperature_start=1,
+                           temperature_threshold=30,
+                           temperature_end=0.01)
+    player_red = NNPlayer(Color.RED,
+                          n_simulations=n_simulations,
+                          current_node=initial_node,
+                          janggi_net=predictor,
+                          temperature_start=1,
+                          temperature_threshold=30,
+                          temperature_end=0.01)
+    game = Game(player_blue, player_red, board)
+    while not game.is_finished(iter_max):
+        new_action = game.get_next_action()
+        game.actions.append(new_action)
+        game.board.apply_action(new_action)
+        game.switch_player()
+        game.board.invalidate_action_cache(new_action)  # Try to reduce memory usage
+        game.round += 1
+    print("Time Episode: ", time.time() - begin_time)
+    return game.dumps()

@@ -9,7 +9,7 @@ import torch
 import multiprocessing as mp
 
 from ia.janggi_network import JanggiNetwork
-from ia.trainer import ModelSaver, run_episode_independant
+from ia.trainer import ModelSaver, run_episode_raw
 from janggi.utils import BOARD_HEIGHT, BOARD_WIDTH, DEVICE
 
 # Activate some logs, can be turned off
@@ -174,10 +174,9 @@ if __name__ == "__main__":
 
                 begin_time = time.time()
                 with mp.Pool(N_POOLS) as pool:
-                    episodes = pool.map(run_episode_independant,
+                    episodes = pool.map(run_episode_raw,
                                         [(predictor, N_SIMULATIONS, ITER_MAX) for _ in range(N_EPISODES)])
-                examples = [x for episode in episodes for x in episode]
-                model_saver.save_episodes(examples)
+                model_saver.save_episodes_raw(episodes)
                 print("Total time:", time.time() - begin_time)
 
                 predictor_process.terminate()

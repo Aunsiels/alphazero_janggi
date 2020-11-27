@@ -79,3 +79,23 @@ class Game:
 
     def get_features(self):
         return self.board.get_features(self.current_player, self.round)
+
+    def get_winner(self):
+        if not self.board.is_finished(self.current_player):
+            score_BLUE = self.board.get_score(Color.BLUE)
+            score_RED = self.board.get_score(Color.RED)
+            if score_BLUE > score_RED:
+                winner = Color.BLUE
+            else:
+                winner = Color.RED
+        else:
+            winner = Color(-self.current_player.value)
+        return winner
+
+    def dumps(self):
+        res = [self.board.start_blue, self.board.start_red]
+        for action in self.actions:
+            res.append(str(action.x_from) + str(action.y_from) + str(action.x_to) + str(action.y_to))
+        if self.get_winner() == self.current_player:
+            res.append("XXXX")
+        return "\n".join(res) + "\n"
