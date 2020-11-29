@@ -19,6 +19,8 @@ from janggi.utils import Color, DEVICE
 from multiprocessing import current_process
 
 # Learning rate of the optimizer
+PROP_POPULATION_FOR_LEARNING = 1 / 50
+N_LAST_GAME_TO_CONSIDER = 500000
 LEARNING_RATE = 0.001
 
 # Number of epoch when learning
@@ -130,7 +132,7 @@ class Trainer:
         print("Start training")
         self.train_and_fight(examples_all)
 
-    def _raw_to_examples(self, line_iterator):
+    def _raw_to_examples(self, line_iterator, limit=-1):
         game_number = 1
         examples_all = []
         blue_starting = None
@@ -156,11 +158,8 @@ class Trainer:
                 round = 0
                 examples = []
                 game_number += 1
-                if game_number % SUPERVISED_GAMES_FREQ == 0:
-                    print("Start training")
-                    self.train_and_fight(examples_all)
-                    examples_all = []
-                    print("Generate training data...")
+                if game_number == limit:
+                    break
             elif blue_starting is None:
                 blue_starting = line
             elif red_starting is None:
@@ -213,8 +212,9 @@ class Trainer:
     def continuous_learning_once(self):
         # First, train
         for _ in range(EPOCH_NUMBER_CONTINUOUS):
-            all_examples = self._raw_to_examples(self.model_saver.all_episodes_raw_iterators())
-            self.train(all_examples)
+            all_examples = self._raw_to_examples(self.model_saver.all_episodes_raw_iterators(), N_LAST_GAME_TO_CONSIDER)
+            training_set = random.choices(all_examples, k=int(len(all_examples) * PROP_POPULATION_FOR_LEARNING))
+            self.train(training_set)
         # Then, fight!
         old_model = copy.deepcopy(self.predictor)
         self.model_saver.load_latest_model(old_model, None)
@@ -247,7 +247,6 @@ class Trainer:
             # Replace model
             print("The model was good enough", victory_percentage)
             self.model_saver.save_weights(self.predictor, optimizer=self.optimizer)
-            self.model_saver.rename_all_raw_episodes()
         else:
             # We take back the old model
             print("The model was not good enough", victory_percentage)
@@ -430,7 +429,9 @@ class ModelSaver:
             yield torch.load(self.episode_path + filename)
 
     def all_episodes_raw_iterators(self):
-        for filename in os.listdir(self.episode_raw_path):
+        filenames = os.listdir(self.episode_raw_path)
+        filenames = sorted(filenames, key=lambda filename: -int(filename[len("episode_"):]))
+        for filename in filenames:
             with open(self.episode_raw_path + filename) as f:
                 for line in f:
                     yield line
