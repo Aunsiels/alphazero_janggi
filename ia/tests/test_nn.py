@@ -35,6 +35,18 @@ class TestNN(unittest.TestCase):
         self.assertEqual(list(policy.shape), [1, 58, 10, 9])
         self.assertEqual(list(value.shape), [1, 1])
 
+    def test_complete2(self):
+        board = Board()
+        janggi_nn = JanggiNetwork()
+        features_in1 = board.get_features(Color.BLUE, 1)
+        features_in1 = features_in1.view(1, -1, BOARD_HEIGHT, BOARD_WIDTH)
+        policy1, value1 = janggi_nn(features_in1)
+        features_in2 = board.get_features(Color.RED, 1)
+        features_in2 = features_in2.view(1, -1, BOARD_HEIGHT, BOARD_WIDTH)
+        policy2, value2 = janggi_nn(features_in2)
+        self.assertNotEqual(features_in1.tolist(), features_in2.tolist())
+        self.assertNotEqual(value1, value2)
+
 
 if __name__ == '__main__':
     unittest.main()

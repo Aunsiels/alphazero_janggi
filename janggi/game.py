@@ -1,6 +1,5 @@
 import time
 
-from janggi.board import Board
 from janggi.utils import Color
 
 
