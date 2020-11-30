@@ -216,10 +216,9 @@ class Trainer:
     def continuous_learning_once(self):
         # First, train
         for _ in range(EPOCH_NUMBER_CONTINUOUS):
-            all_examples = self._raw_to_examples(self.model_saver.all_episodes_raw_iterators(),
+            training_set = self._raw_to_examples(self.model_saver.all_episodes_raw_iterators(),
                                                  N_LAST_GAME_TO_CONSIDER,
                                                  PROP_POPULATION_FOR_LEARNING)
-            training_set = random.choices(all_examples, k=int(len(all_examples) * PROP_POPULATION_FOR_LEARNING))
             self.train(training_set)
         # Then, fight!
         old_model = copy.deepcopy(self.predictor)
