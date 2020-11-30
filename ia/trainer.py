@@ -248,7 +248,7 @@ class Trainer:
             print("The model was good enough", victory_percentage)
             self.model_saver.save_weights(self.predictor, optimizer=self.optimizer)
         else:
-            # We take back the old model
+            # We do not save the model
             print("The model was not good enough", victory_percentage)
             # self.model_saver.load_latest_model(self.predictor, optimizer=self.optimizer)
 
