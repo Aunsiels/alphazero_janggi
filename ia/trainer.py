@@ -132,7 +132,7 @@ class Trainer:
         print("Start training")
         self.train_and_fight(examples_all)
 
-    def _raw_to_examples(self, line_iterator, limit=-1):
+    def _raw_to_examples(self, line_iterator, limit=-1, proba=None):
         game_number = 1
         examples_all = []
         blue_starting = None
@@ -174,21 +174,25 @@ class Trainer:
                     action = Action(int(line[0]), int(line[1]), int(line[2]), int(line[3]))
                     get_policy = action.get_policy
                 if is_blue:
-                    examples.append([board.get_features(Color.BLUE, round),
-                                     get_policy(Color.BLUE),
-                                     Color.BLUE])
-                    examples.append([board.get_features(Color.BLUE, round, data_augmentation=True),
-                                     get_policy(Color.BLUE,
-                                                data_augmentation=True),
-                                     Color.BLUE])
+                    if proba is None or random.random() < proba:
+                        examples.append([board.get_features(Color.BLUE, round),
+                                         get_policy(Color.BLUE),
+                                         Color.BLUE])
+                    if proba is None or random.random() < proba:
+                        examples.append([board.get_features(Color.BLUE, round, data_augmentation=True),
+                                         get_policy(Color.BLUE,
+                                                    data_augmentation=True),
+                                         Color.BLUE])
                 else:
-                    examples.append([board.get_features(Color.RED, round, data_augmentation=True),
-                                     get_policy(Color.RED,
-                                                data_augmentation=True),
-                                     Color.RED])
-                    examples.append([board.get_features(Color.RED, round),
-                                     get_policy(Color.RED),
-                                     Color.RED])
+                    if proba is None or random.random() < proba:
+                        examples.append([board.get_features(Color.RED, round, data_augmentation=True),
+                                         get_policy(Color.RED,
+                                                    data_augmentation=True),
+                                         Color.RED])
+                    if proba is None or random.random() < proba:
+                        examples.append([board.get_features(Color.RED, round),
+                                         get_policy(Color.RED),
+                                         Color.RED])
                 board.apply_action(action)
                 round += 1
                 is_blue = not is_blue
@@ -212,7 +216,9 @@ class Trainer:
     def continuous_learning_once(self):
         # First, train
         for _ in range(EPOCH_NUMBER_CONTINUOUS):
-            all_examples = self._raw_to_examples(self.model_saver.all_episodes_raw_iterators(), N_LAST_GAME_TO_CONSIDER)
+            all_examples = self._raw_to_examples(self.model_saver.all_episodes_raw_iterators(),
+                                                 N_LAST_GAME_TO_CONSIDER,
+                                                 PROP_POPULATION_FOR_LEARNING)
             training_set = random.choices(all_examples, k=int(len(all_examples) * PROP_POPULATION_FOR_LEARNING))
             self.train(training_set)
         # Then, fight!
