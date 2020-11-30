@@ -2,7 +2,7 @@ import itertools
 
 import torch
 from janggi.piece import Soldier, Cannon, General, Chariot, Elephant, Horse, Guard
-from janggi.utils import BOARD_HEIGHT, BOARD_WIDTH, Color, DEVICE
+from janggi.utils import BOARD_HEIGHT, BOARD_WIDTH, Color
 
 
 class Board:

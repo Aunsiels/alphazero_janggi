@@ -1,7 +1,9 @@
 import unittest
 
 from ia.janggi_network import JanggiNetwork
+from ia.random_mcts_player import fight, NNPlayer
 from ia.trainer import Trainer
+from janggi.utils import Color
 
 
 class TestTrainer(unittest.TestCase):
@@ -20,6 +22,19 @@ class TestTrainer(unittest.TestCase):
     def test_fight(self):
         trainer = Trainer(JanggiNetwork(), n_simulations=10, iter_max=30, n_simulation_opponent=10)
         trainer.train_and_fight([])
+
+    def test_fight2(self):
+        player_blue = NNPlayer(Color.BLUE, n_simulations=100,
+                               janggi_net=JanggiNetwork(),
+                               temperature_start=0.01,
+                               temperature_threshold=30,
+                               temperature_end=0.01)
+        player_red = NNPlayer(Color.RED, n_simulations=100,
+                               janggi_net=JanggiNetwork(),
+                               temperature_start=0.01,
+                               temperature_threshold=30,
+                               temperature_end=0.01)
+        fight(player_blue, player_red, 100)
 
 
 if __name__ == '__main__':

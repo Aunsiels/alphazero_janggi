@@ -250,7 +250,7 @@ class Trainer:
         else:
             # We take back the old model
             print("The model was not good enough", victory_percentage)
-            self.model_saver.load_latest_model(self.predictor, optimizer=self.optimizer)
+            # self.model_saver.load_latest_model(self.predictor, optimizer=self.optimizer)
 
     def train_and_fight(self, examples):
         self.train(examples)
