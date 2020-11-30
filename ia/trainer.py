@@ -222,23 +222,35 @@ class Trainer:
         victories = 0
         print("Start the fights!")
         for i in range(N_FIGHTS):
-            new_player = NNPlayer(Color.BLUE,
-                                  n_simulations=self.n_simulations,
-                                  janggi_net=self.predictor,
-                                  temperature_start=0.01,
-                                  temperature_threshold=30,
-                                  temperature_end=0.01)
-            old_player = NNPlayer(Color.BLUE,
-                                  n_simulations=self.n_simulations,
-                                  janggi_net=old_model,
-                                  temperature_start=0.01,
-                                  temperature_threshold=30,
-                                  temperature_end=0.01)
             if i < N_FIGHTS / 2:
+                new_player = NNPlayer(Color.BLUE,
+                                      n_simulations=self.n_simulations,
+                                      janggi_net=self.predictor,
+                                      temperature_start=0.01,
+                                      temperature_threshold=30,
+                                      temperature_end=0.01)
+                old_player = NNPlayer(Color.RED,
+                                      n_simulations=self.n_simulations,
+                                      janggi_net=old_model,
+                                      temperature_start=0.01,
+                                      temperature_threshold=30,
+                                      temperature_end=0.01)
                 winner = fight(new_player, old_player, self.iter_max)
                 if winner == Color.BLUE:
                     victories += 1
             else:
+                new_player = NNPlayer(Color.RED,
+                                      n_simulations=self.n_simulations,
+                                      janggi_net=self.predictor,
+                                      temperature_start=0.01,
+                                      temperature_threshold=30,
+                                      temperature_end=0.01)
+                old_player = NNPlayer(Color.BLUE,
+                                      n_simulations=self.n_simulations,
+                                      janggi_net=old_model,
+                                      temperature_start=0.01,
+                                      temperature_threshold=30,
+                                      temperature_end=0.01)
                 winner = fight(old_player, new_player, self.iter_max)
                 if winner == Color.RED:
                     victories += 1
