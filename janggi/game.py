@@ -28,8 +28,8 @@ class Game:
             self.board.invalidate_action_cache(new_action)  # Try to reduce memory usage
             self.round += 1
             # print(time.time() - begin_time)
-            #print(self.board)
-            #print(new_action)
+            # print(self.board)
+            # print(new_action)
         end_game_time = time.time()
         print("Mean time per action", (end_game_time - begin_game_time) / self.round)
         if not self.board.is_finished(self.current_player):
@@ -55,7 +55,7 @@ class Game:
         return new_action
 
     def get_current_actions(self):
-        return self.board.get_actions(self.current_player)
+        return self.board.get_actions(self.current_player, self.actions)
 
     def is_finished(self, iter_max=200):
         if self.actions:

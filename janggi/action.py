@@ -23,7 +23,7 @@ SYMMETRY_Y = [0, 1, 2, 3, 4, 5, 6, 7, 8,  # North
 
 class Action(object):
 
-    __slots__ = ('x_from', 'y_from', "x_to", "y_to", "eaten")
+    __slots__ = ('x_from', 'y_from', "x_to", "y_to", "eaten", "_hash")
 
     def __init__(self, x_from, y_from, x_to, y_to):
         self.x_from = x_from
@@ -31,6 +31,7 @@ class Action(object):
         self.x_to = x_to
         self.y_to = y_to
         self.eaten = None
+        self._hash = hash((self.x_from, self.y_from, self.x_to, self.y_to))
 
     def get_x_from(self, symmetry=False):
         if symmetry:
@@ -60,7 +61,7 @@ class Action(object):
         return str(self)
 
     def __hash__(self):
-        return hash((self.x_from, self.y_from, self.x_to, self.y_to))
+        return self._hash
 
     def __eq__(self, other):
         return self.x_from == other.x_from and self.y_from == other.y_from \

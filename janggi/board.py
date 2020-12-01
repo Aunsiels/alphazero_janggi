@@ -140,7 +140,7 @@ class Board:
     def is_in(x, y):
         return 0 <= x < BOARD_HEIGHT and 0 <= y < BOARD_WIDTH
 
-    def get_actions(self, color):
+    def get_actions(self, color, previous_actions=None):
         # Check if in cache
         if color == Color.RED:
             if self._current_action_cache_node.next_actions_red is not None:
@@ -172,6 +172,8 @@ class Board:
         # Exclude actions creating a check
         filtered_actions = []
         for action in unfiltered_actions:
+            if previous_actions is not None and is_repetition(previous_actions, action):
+                continue
             self.apply_action(action)
             if action.x_to == general.x and action.y_to == general.y:
                 # If we are the general, we have no choice
@@ -305,6 +307,14 @@ class Board:
 
 def get_action_piece(piece):
     return piece.get_actions()
+
+
+def is_repetition(previous_actions, current_action):
+    return len(previous_actions) > 6 and \
+           current_action == previous_actions[-2] and \
+           current_action == previous_actions[-4] and \
+           previous_actions[-1] == previous_actions[-3] and \
+           previous_actions[-3] == previous_actions[-5]
 
 
 class ActionCacheNode:
