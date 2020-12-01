@@ -311,10 +311,10 @@ def get_action_piece(piece):
 
 def is_repetition(previous_actions, current_action):
     return len(previous_actions) > 6 and \
-           current_action == previous_actions[-2] and \
            current_action == previous_actions[-4] and \
-           previous_actions[-1] == previous_actions[-3] and \
-           previous_actions[-3] == previous_actions[-5]
+           current_action == previous_actions[-8] and \
+           previous_actions[-1] == previous_actions[-5] and \
+           previous_actions[-5] == previous_actions[-9]
 
 
 class ActionCacheNode:
