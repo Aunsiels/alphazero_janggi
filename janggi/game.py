@@ -42,7 +42,7 @@ class Game:
             else:
                 return Color.RED
         else:
-            print("Check win")
+            print("Check win with", self.round, "rounds")
         return Color(-self.current_player.value)
 
     def switch_player(self):
@@ -96,7 +96,10 @@ class Game:
     def dumps(self):
         res = [self.board.start_blue, self.board.start_red]
         for action in self.actions:
-            res.append(str(action.x_from) + str(action.y_from) + str(action.x_to) + str(action.y_to))
+            if action is None:
+                res.append("XXXX")
+            else:
+                res.append(str(action.x_from) + str(action.y_from) + str(action.x_to) + str(action.y_to))
         if self.get_winner() == self.current_player:
             res.append("XXXX")
         return "\n".join(res) + "\n"

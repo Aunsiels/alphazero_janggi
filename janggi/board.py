@@ -30,9 +30,9 @@ class Board:
         board = Board()
         board.board = [[None for _ in range(BOARD_WIDTH)] for _ in range(BOARD_HEIGHT)]
         board._str = [["." for _ in range(BOARD_WIDTH)] for _ in range(BOARD_HEIGHT)]
-        horse_blue = {}
-        horse_red = {}
+        string = string.strip()
         for x, line in enumerate(string.splitlines()):
+            line = line.strip()
             for y, char in enumerate(line):
                 if char == ".":
                     continue
@@ -55,7 +55,8 @@ class Board:
                     board.set(x, y, Guard(x, y, color, board))
                 elif char == "s":
                     board.set(x, y, Soldier(x, y, color, board))
-
+        board._initialise_pieces_per_color()
+        return board
 
     def _initialise_pieces_per_color(self):
         self._blue_pieces = []

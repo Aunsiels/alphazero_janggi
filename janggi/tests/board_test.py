@@ -284,6 +284,36 @@ class TestBoardGwee(BoardTest):
     def test_get_all_actions(self):
         self.assertEqual(len(self.board.get_actions(Color.BLUE)), 31)
 
+    def test_read(self):
+        board = Board.from_string("""
+            .HEG.GE.R
+            .....K...
+            .......RH
+            S.S...C.S
+            .......S.
+            .s..sr.C.
+            s......ss
+            ...kce.c.
+            .........
+            .h..ggher""")
+        self.assertEqual(len(board.get_actions(Color.BLUE)), 1)
+        self.assertFalse(board.is_finished(Color.BLUE))
+
+    def test_read2(self):
+        board = Board.from_string("""
+            ...K.....
+            cH.......
+            .H..G....
+            ......s..
+            ...S..s..
+            ....s....
+            .........
+            .hRk.gh..
+            .C..gE...
+            .........""")
+        self.assertEqual(len(board.get_actions(Color.RED)), 1)
+        self.assertFalse(board.is_finished(Color.RED))
+
 
 class TestBoardSang(BoardTest):
 
