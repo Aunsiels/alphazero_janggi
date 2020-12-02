@@ -145,6 +145,9 @@ class BoardTest(unittest.TestCase):
         self.assertEqual(features[0, 3, 0], 1)
         self.assertEqual(features[7, 6, 0], 1)
         self.assertEqual(features[-1, 6, 0], 10)
+        features_red = self.board.get_features(Color.RED, 10)
+        if self.board.start_red == self.board.start_blue:
+            self.assertEqual(features[:14, :, :].tolist(), features_red[:14, :, :].tolist())
 
     def test_action_features(self, no_sum=False):
         for x in range(BOARD_HEIGHT):
@@ -195,11 +198,11 @@ class BoardTest(unittest.TestCase):
                     self.board.set(x, y, None)
                     self._current_action_cache_node = ActionCacheNode(None)
 
-    def test_perf_chariot(self):
+    def _test_perf_chariot(self):
         for _ in range(1000):
             self.perf_for_one_piece(Chariot)
 
-    def test_perf_cannon(self):
+    def _test_perf_cannon(self):
         for _ in range(10000):
             self.perf_for_one_piece(Cannon)
 
@@ -265,8 +268,8 @@ class TestBoardGwee(BoardTest):
     def test_action_elephant(self):
         self.assertEqual(len(self.board.get(0, 1).get_actions()), 1)
         self.assertEqual(len(self.board.get(0, 6).get_actions()), 0)
-        self.assertEqual(len(self.board.get(9, 1).get_actions()), 1)
-        self.assertEqual(len(self.board.get(9, 6).get_actions()), 0)
+        self.assertEqual(len(self.board.get(9, 2).get_actions()), 0)
+        self.assertEqual(len(self.board.get(9, 7).get_actions()), 1)
         self.board.set(0, 1, None)
         self.board.set(3, 3, Elephant(3, 3, Color.BLUE, self.board))
         self.board.invalidate_action_cache()
@@ -275,8 +278,8 @@ class TestBoardGwee(BoardTest):
     def test_action_horse(self):
         self.assertEqual(len(self.board.get(0, 2).get_actions()), 1)
         self.assertEqual(len(self.board.get(0, 7).get_actions()), 2)
-        self.assertEqual(len(self.board.get(9, 2).get_actions()), 1)
-        self.assertEqual(len(self.board.get(9, 7).get_actions()), 2)
+        self.assertEqual(len(self.board.get(9, 6).get_actions()), 1)
+        self.assertEqual(len(self.board.get(9, 1).get_actions()), 2)
 
     def test_get_all_actions(self):
         self.assertEqual(len(self.board.get_actions(Color.BLUE)), 31)
@@ -290,8 +293,8 @@ class TestBoardSang(BoardTest):
     def test_action_elephant(self):
         self.assertEqual(len(self.board.get(0, 2).get_actions()), 0)
         self.assertEqual(len(self.board.get(0, 7).get_actions()), 1)
-        self.assertEqual(len(self.board.get(9, 2).get_actions()), 0)
-        self.assertEqual(len(self.board.get(9, 7).get_actions()), 1)
+        self.assertEqual(len(self.board.get(9, 1).get_actions()), 1)
+        self.assertEqual(len(self.board.get(9, 6).get_actions()), 0)
         self.board.set(0, 1, None)
         self.board.set(3, 3, Elephant(3, 3, Color.BLUE, self.board))
         self.board.invalidate_action_cache()
@@ -300,8 +303,8 @@ class TestBoardSang(BoardTest):
     def test_action_horse(self):
         self.assertEqual(len(self.board.get(0, 1).get_actions()), 2)
         self.assertEqual(len(self.board.get(0, 6).get_actions()), 1)
-        self.assertEqual(len(self.board.get(9, 1).get_actions()), 2)
-        self.assertEqual(len(self.board.get(9, 6).get_actions()), 1)
+        self.assertEqual(len(self.board.get(9, 2).get_actions()), 1)
+        self.assertEqual(len(self.board.get(9, 7).get_actions()), 2)
 
     def test_get_all_actions(self):
         self.assertEqual(len(self.board.get_actions(Color.BLUE)), 31)

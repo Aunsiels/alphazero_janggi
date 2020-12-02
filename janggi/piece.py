@@ -1,4 +1,5 @@
 # From https://stackoverflow.com/questions/287871/how-to-print-colored-text-in-python
+import janggi
 from janggi.utils import BOARD_HEIGHT, BOARD_WIDTH, Color
 from janggi.action import Action
 
@@ -28,8 +29,7 @@ class Piece:
         raise NotImplementedError
 
     def get_colored_str(self, value):
-        from janggi.board import Color
-        if self.color == Color.BLUE:
+        if self.color == janggi.board.Color.BLUE:
             return bcolors.OKBLUE + str(value) + bcolors.ENDC
         else:
             return bcolors.FAIL + str(value) + bcolors.ENDC
@@ -54,6 +54,12 @@ class Soldier(Piece):
 
     def __str__(self):
         return self.get_colored_str("S")
+
+    def __repr__(self):
+        if self.color == Color.BLUE:
+            return "S"
+        else:
+            return "s"
 
     def get_actions(self):
         actions = []
@@ -106,6 +112,12 @@ class Cannon(Piece):
 
     def __str__(self):
         return self.get_colored_str("C")
+
+    def __repr__(self):
+        if self.color == Color.BLUE:
+            return "C"
+        else:
+            return "c"
 
     def get_actions(self):
         actions = []
@@ -175,6 +187,12 @@ class General(Piece):
     def __str__(self):
         return self.get_colored_str("K")
 
+    def __repr__(self):
+        if self.color == Color.BLUE:
+            return "K"
+        else:
+            return "k"
+
     def get_actions(self):
         actions = []
         if self.color == Color.BLUE:
@@ -219,6 +237,12 @@ class Chariot(Piece):
 
     def __str__(self):
         return self.get_colored_str("R")
+
+    def __repr__(self):
+        if self.color == Color.BLUE:
+            return "R"
+        else:
+            return "r"
 
     def get_actions(self):
         actions = []
@@ -309,6 +333,12 @@ class Elephant(Piece):
     def __str__(self):
         return self.get_colored_str("E")
 
+    def __repr__(self):
+        if self.color == Color.BLUE:
+            return "E"
+        else:
+            return "e"
+
     def get_actions(self):
         actions = []
         self._get_actions_sub(actions, -1, 1)
@@ -358,6 +388,12 @@ class Horse(Piece):
     def __str__(self):
         return self.get_colored_str("H")
 
+    def __repr__(self):
+        if self.color == Color.BLUE:
+            return "H"
+        else:
+            return "h"
+
     def get_actions(self):
         actions = []
         self._get_actions_sub(actions, -1, 1)
@@ -401,6 +437,12 @@ class Guard(Piece):
 
     def __str__(self):
         return self.get_colored_str("G")
+
+    def __repr__(self):
+        if self.color == Color.BLUE:
+            return "G"
+        else:
+            return "g"
 
     def get_actions(self):
         actions = []

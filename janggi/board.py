@@ -12,6 +12,7 @@ class Board:
     def __init__(self, start_blue="yang", start_red="yang"):
         self.board = [[None for _ in range(BOARD_WIDTH)] for _ in range(BOARD_HEIGHT)]
         self._str = [["." for _ in range(BOARD_WIDTH)] for _ in range(BOARD_HEIGHT)]
+        self._str_sub = ["".join(x) for x in self._str]
         self._blue_general = None
         self._red_general = None
         self.start_blue = start_blue
@@ -23,6 +24,38 @@ class Board:
         self._initialise_pieces_per_color()
         self.previous_boards = dict()
         self.previous_boards[str(self)] = 1
+
+    @classmethod
+    def from_string(cls, string):
+        board = Board()
+        board.board = [[None for _ in range(BOARD_WIDTH)] for _ in range(BOARD_HEIGHT)]
+        board._str = [["." for _ in range(BOARD_WIDTH)] for _ in range(BOARD_HEIGHT)]
+        horse_blue = {}
+        horse_red = {}
+        for x, line in enumerate(string.splitlines()):
+            for y, char in enumerate(line):
+                if char == ".":
+                    continue
+                if char.islower():
+                    color = Color.RED
+                else:
+                    color = Color.BLUE
+                char = char.lower()
+                if char == "k":
+                    board.set(x, y, General(x, y, color, board))
+                elif char == "c":
+                    board.set(x, y, Cannon(x, y, color, board))
+                elif char == "r":
+                    board.set(x, y, Chariot(x, y, color, board))
+                elif char == "h":
+                    board.set(x, y, Horse(x, y, color, board))
+                elif char == "e":
+                    board.set(x, y, Elephant(x, y, color, board))
+                elif char == "g":
+                    board.set(x, y, Guard(x, y, color, board))
+                elif char == "s":
+                    board.set(x, y, Soldier(x, y, color, board))
+
 
     def _initialise_pieces_per_color(self):
         self._blue_pieces = []
@@ -71,11 +104,11 @@ class Board:
         else:
             self.set(0, 6, Horse(0, 6, Color.BLUE, self))
 
-        if self.start_red == "won" or self.start_red == "sang":
+        if self.start_red == "won" or self.start_red == "gwee":
             self.set(9, 1, Horse(9, 1, Color.RED, self))
         else:
             self.set(9, 2, Horse(9, 2, Color.RED, self))
-        if self.start_red == "won" or self.start_red == "gwee":
+        if self.start_red == "won" or self.start_red == "sang":
             self.set(9, 7, Horse(9, 7, Color.RED, self))
         else:
             self.set(9, 6, Horse(9, 6, Color.RED, self))
@@ -90,11 +123,11 @@ class Board:
         else:
             self.set(0, 7, Elephant(0, 7, Color.BLUE, self))
 
-        if self.start_red == "won" or self.start_red == "sang":
+        if self.start_red == "won" or self.start_red == "gwee":
             self.set(9, 2, Elephant(9, 2, Color.RED, self))
         else:
             self.set(9, 1, Elephant(9, 1, Color.RED, self))
-        if self.start_red == "won" or self.start_red == "gwee":
+        if self.start_red == "won" or self.start_red == "sang":
             self.set(9, 6, Elephant(9, 6, Color.RED, self))
         else:
             self.set(9, 7, Elephant(9, 7, Color.RED, self))
@@ -124,7 +157,19 @@ class Board:
             self.set(6, y, Soldier(6, y, Color.RED, self))
 
     def __str__(self):
-        return "\n".join([" ".join(x) for x in self._str]) + "\n"
+        return "\n".join(self._str_sub) + "\n"
+
+    def __repr__(self):
+        representation = ["-" + " " + " ".join([str(x) for x in range(9)])]
+        for x in range(BOARD_HEIGHT - 1, -1, -1):
+            to_print = []
+            for y in range(BOARD_WIDTH):
+                if self.get(x, y) is None:
+                    to_print.append(".")
+                else:
+                    to_print.append(str(self.get(x, y)))
+            representation.append(str(x) + " " + " ".join(to_print))
+        return "\n".join(representation) + "\n"
 
     def __hash__(self):
         return hash(str(self))
@@ -229,14 +274,15 @@ class Board:
     def apply_action(self, action):
         board_str = str(self)
         self.previous_boards[board_str] = self.previous_boards.get(board_str, 0) + 1
-        if action not in self._current_action_cache_node.next_nodes:
-            self._current_action_cache_node.next_nodes[action] = ActionCacheNode(self._current_action_cache_node)
-        self._current_action_cache_node = self._current_action_cache_node.next_nodes[action]
+        self._set_current_action_cache_node_from_next(action)
 
         if action is None:
             # We do nothing
             return
 
+        self._apply_move(action)
+
+    def _apply_move(self, action):
         piece_from = self.get(action.x_from, action.y_from)
         piece_from.x = action.x_to
         piece_from.y = action.y_to
@@ -245,6 +291,14 @@ class Board:
             action.eaten.is_alive = False
         self.set(action.x_to, action.y_to, piece_from)
         self.set(action.x_from, action.y_from, None)
+
+    def _set_current_action_cache_node_from_next(self, action):
+        if action not in self._current_action_cache_node.next_nodes:
+            temp = ActionCacheNode(self._current_action_cache_node)
+            self._current_action_cache_node.next_nodes[action] = temp
+            self._current_action_cache_node = temp
+        else:
+            self._current_action_cache_node = self._current_action_cache_node.next_nodes[action]
 
     def reverse_action(self, action):
         board_str = str(self)
@@ -255,9 +309,10 @@ class Board:
             # We do nothing
             return
 
-        self.get(action.x_to, action.y_to).x = action.x_from
-        self.get(action.x_to, action.y_to).y = action.y_from
-        self.set(action.x_from, action.y_from, self.get(action.x_to, action.y_to))
+        dest_value = self.get(action.x_to, action.y_to)
+        dest_value.x = action.x_from
+        dest_value.y = action.y_from
+        self.set(action.x_from, action.y_from, dest_value)
         self.set(action.x_to, action.y_to, action.eaten)
         if action.eaten is not None:
             action.eaten.is_alive = True
@@ -287,7 +342,8 @@ class Board:
         if new_value is None:
             self._str[x][y] = "."
         else:
-            self._str[x][y] = str(new_value)
+            self._str[x][y] = repr(new_value)
+        self._str_sub[x] = "".join(self._str[x])
 
     def get_features(self, color, n_round, data_augmentation=False):
         is_reversed = color != Color.BLUE
@@ -308,6 +364,7 @@ class Board:
         features[7 * 2 + 1, :, :] = n_round
         # features = features.to(DEVICE)
         return features
+
 
 
 def get_action_piece(piece):
