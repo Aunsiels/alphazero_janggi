@@ -11,6 +11,7 @@ class Board:
 
     def __init__(self, start_blue="yang", start_red="yang"):
         self.board = [[None for _ in range(BOARD_WIDTH)] for _ in range(BOARD_HEIGHT)]
+        self._str = [["." for _ in range(BOARD_WIDTH)] for _ in range(BOARD_HEIGHT)]
         self._blue_general = None
         self._red_general = None
         self.start_blue = start_blue
@@ -123,16 +124,7 @@ class Board:
             self.set(6, y, Soldier(6, y, Color.RED, self))
 
     def __str__(self):
-        representation = []
-        for x in range(BOARD_HEIGHT - 1, -1, -1):
-            to_print = []
-            for y in range(BOARD_WIDTH):
-                if self.get(x, y) is None:
-                    to_print.append(".")
-                else:
-                    to_print.append(str(self.get(x, y)))
-            representation.append(" ".join(to_print))
-        return "\n".join(representation) + "\n"
+        return "\n".join([" ".join(x) for x in self._str]) + "\n"
 
     def __hash__(self):
         return hash(str(self))
@@ -292,6 +284,10 @@ class Board:
 
     def set(self, x, y, new_value):
         self.board[x][y] = new_value
+        if new_value is None:
+            self._str[x][y] = "."
+        else:
+            self._str[x][y] = str(new_value)
 
     def get_features(self, color, n_round, data_augmentation=False):
         is_reversed = color != Color.BLUE
