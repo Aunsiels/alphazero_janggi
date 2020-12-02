@@ -55,7 +55,7 @@ class Game:
         return new_action
 
     def get_current_actions(self):
-        return self.board.get_actions(self.current_player, self.actions)
+        return self.board.get_actions(self.current_player)
 
     def is_finished(self, iter_max=200):
         if self.actions:

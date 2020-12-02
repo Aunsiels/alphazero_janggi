@@ -4,6 +4,8 @@ import torch
 from janggi.piece import Soldier, Cannon, General, Chariot, Elephant, Horse, Guard
 from janggi.utils import BOARD_HEIGHT, BOARD_WIDTH, Color
 
+MAX_REPETITIONS = 3
+
 
 class Board:
 
@@ -18,6 +20,8 @@ class Board:
         self._blue_pieces = []
         self._red_pieces = []
         self._initialise_pieces_per_color()
+        self.previous_boards = dict()
+        self.previous_boards[str(self)] = 1
 
     def _initialise_pieces_per_color(self):
         self._blue_pieces = []
@@ -140,7 +144,7 @@ class Board:
     def is_in(x, y):
         return 0 <= x < BOARD_HEIGHT and 0 <= y < BOARD_WIDTH
 
-    def get_actions(self, color, previous_actions=None):
+    def get_actions(self, color):
         # Check if in cache
         if color == Color.RED:
             if self._current_action_cache_node.next_actions_red is not None:
@@ -172,9 +176,10 @@ class Board:
         # Exclude actions creating a check
         filtered_actions = []
         for action in unfiltered_actions:
-            if previous_actions is not None and is_repetition(previous_actions, action):
-                continue
             self.apply_action(action)
+            if self.previous_boards.get(str(self), 0) >= MAX_REPETITIONS:
+                self.reverse_action(action)
+                continue
             if action.x_to == general.x and action.y_to == general.y:
                 # If we are the general, we have no choice
                 if not self.is_check(color):
@@ -230,6 +235,8 @@ class Board:
         return False
 
     def apply_action(self, action):
+        board_str = str(self)
+        self.previous_boards[board_str] = self.previous_boards.get(board_str, 0) + 1
         if action not in self._current_action_cache_node.next_nodes:
             self._current_action_cache_node.next_nodes[action] = ActionCacheNode(self._current_action_cache_node)
         self._current_action_cache_node = self._current_action_cache_node.next_nodes[action]
@@ -248,6 +255,8 @@ class Board:
         self.set(action.x_from, action.y_from, None)
 
     def reverse_action(self, action):
+        board_str = str(self)
+        self.previous_boards[board_str] = self.previous_boards.get(board_str, 0) - 1
         self._current_action_cache_node = self._current_action_cache_node.parent
 
         if action is None:
