@@ -115,7 +115,7 @@ def fight(player_blue, player_red, iter_max):
     print("Winner:", winner)
     print("Score BLUE:", board.get_score(Color.BLUE))
     print("Score RED:", board.get_score(Color.RED))
-    print(board)
+    print(repr(board))
     return winner
 
 
