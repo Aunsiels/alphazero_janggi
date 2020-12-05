@@ -64,7 +64,8 @@ class Trainer:
         self.iter_max = iter_max
         self.n_simulations_opponent = n_simulation_opponent
         self.model_saver = ModelSaver(dir_base)
-        self.optimizer = torch.optim.SGD(self.predictor.parameters(), lr=LEARNING_RATE, momentum=0.9, weight_decay=0.0001)
+        self.optimizer = torch.optim.SGD(self.predictor.parameters(), lr=LEARNING_RATE, momentum=0.9,
+                                         weight_decay=0.0001)
         self.model_saver.load_latest_model(self.predictor, self.optimizer)
 
     def run_episode(self):
@@ -370,6 +371,12 @@ class ModelSaver:
             maxi = max(maxi, int(filename[len("episode_"):]))
         return maxi
 
+    def get_lowest_index_episode_raw(self):
+        mini = -1
+        for filename in os.listdir(self.episode_raw_path):
+            mini = min(mini, int(filename[len("episode_"):]))
+        return mini
+
     def get_last_episode_done(self):
         maxi = -1
         for filename in os.listdir(self.episode_done_path):
@@ -392,8 +399,11 @@ class ModelSaver:
         new_index = self.get_last_episode_index() + 1
         torch.save(episodes, self.episode_path + "episode_" + str(new_index))
 
-    def save_episodes_raw(self, episodes):
-        new_index = self.get_last_episode_raw_index() + 1
+    def save_episodes_raw(self, episodes, mini=False):
+        if mini:
+            new_index = self.get_lowest_index_episode_raw() - 1
+        else:
+            new_index = self.get_last_episode_raw_index() + 1
         with open(self.episode_raw_path + "episode_" + str(new_index), "w") as f:
             f.write("\n".join(episodes) + "\n")
 
@@ -569,6 +579,36 @@ def run_episode_raw(args):
                           temperature_start=1,
                           temperature_threshold=30,
                           temperature_end=0.01)
+    game = run_game(board, player_blue, player_red, iter_max)
+    print("Time Episode: ", time.time() - begin_time)
+    return game.dumps()
+
+
+def run_episode_raw_not_nn(args):
+    print("Starting episode", current_process().name)
+    begin_time = time.time()
+    n_simulations, iter_max = args
+    start_blue = random.choice(["won", "sang", "yang", "gwee"])
+    start_red = random.choice(["won", "sang", "yang", "gwee"])
+    board = Board(start_blue=start_blue, start_red=start_red)
+    initial_node = MCTSNode(is_initial=True)
+    player_blue = RandomMCTSPlayer(Color.BLUE, n_simulations=n_simulations,
+                                   current_node=initial_node,
+                                   temperature_start=1,
+                                   temperature_threshold=30,
+                                   temperature_end=0.01)
+    player_red = RandomMCTSPlayer(Color.RED,
+                                  n_simulations=n_simulations,
+                                  current_node=initial_node,
+                                  temperature_start=1,
+                                  temperature_threshold=30,
+                                  temperature_end=0.01)
+    game = run_game(board, player_blue, player_red, iter_max)
+    print("Time Episode: ", time.time() - begin_time)
+    return game.dumps()
+
+
+def run_game(board, player_blue, player_red, iter_max):
     game = Game(player_blue, player_red, board)
     while not game.is_finished(iter_max):
         new_action = game.get_next_action()
@@ -577,5 +617,4 @@ def run_episode_raw(args):
         game.switch_player()
         game.board.invalidate_action_cache(new_action)  # Try to reduce memory usage
         game.round += 1
-    print("Time Episode: ", time.time() - begin_time)
-    return game.dumps()
+    return game
