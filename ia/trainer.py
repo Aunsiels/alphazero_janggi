@@ -203,6 +203,7 @@ class Trainer:
             winner = Color.BLUE
         set_winner(examples, winner)
         examples_all += examples
+        print("READ", game_number, "games.")
         return examples_all
 
     def continuous_learning(self):
