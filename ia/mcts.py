@@ -67,11 +67,13 @@ class MCTS:
             reward = game.get_reward()
             return -reward
 
-        possible_actions = game.get_current_actions()
         if current_node.probabilities is None:
+            possible_actions = game.get_current_actions()
             probabilities, predicted_value = predictor.predict()
             current_node.set_up(probabilities, game.current_player, possible_actions)
             return -predicted_value
+        else:
+            possible_actions = list(current_node.q.keys())
 
         random.shuffle(possible_actions)
 
