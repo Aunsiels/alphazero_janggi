@@ -79,6 +79,8 @@ class MCTS:
 
         u_max, best_action = -float("inf"), None
         for action in possible_actions:
+            if action is None:
+                continue
             u = current_node.q[action] + \
                 self.c_puct * current_node.probabilities[action] * \
                 math.sqrt(current_node.total_N) / (1 + current_node.N[action])
