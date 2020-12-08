@@ -3,6 +3,8 @@ import unittest
 import numpy as np
 
 from janggi.board import Board, ActionCacheNode
+from janggi.game import Game
+from janggi.player import RandomPlayer
 from janggi.utils import BOARD_HEIGHT, BOARD_WIDTH, Color
 from janggi.piece import Soldier, Cannon, General, Chariot, Elephant, Horse, Guard
 
@@ -313,6 +315,51 @@ class TestBoardGwee(BoardTest):
             .........""")
         self.assertEqual(len(board.get_actions(Color.RED)), 1)
         self.assertFalse(board.is_finished(Color.RED))
+
+    def test_to_fen(self):
+        fen = self.board.to_fen(Color.BLUE, 105)
+        self.assertIn("/", fen)
+        self.assertIn("54", fen)
+
+    def test_from_fen(self):
+        board = Board.from_fen("rnba1abnr/4k4/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/4K4/RNBA1ABNR w - - 0 1")
+        self.assertEqual(board.get_score(Color.BLUE), 72)
+
+    def test_game_from_fen(self):
+        game = Game.from_fen(RandomPlayer(Color.BLUE),
+                             RandomPlayer(Color.RED),
+                             "rnba1abnr/4k4/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/4K4/RNBA1ABNR w - - 0 1")
+        self.assertEqual(game.current_player, Color.BLUE)
+        self.assertEqual(game.round, 0)
+
+    def test_uci_usi(self):
+        game = Game.from_uci_usi(
+            RandomPlayer(Color.BLUE),
+            RandomPlayer(Color.RED),
+            "position fen r1bakab1r/9/2ncc4/1pppn2R1/9/9/BPP1P1P1P/2N1CN1C1/4K4/3A1A2R w - - 0 1 "
+            "moves g4h4 f10e9 i1g1 d10d9 g1g9 d8d10 h3h5 a10a6 e3i3 e7f5 h5e5 a6e6 i3i10 d10f10 "
+            "h7f7 f5h4 e5e3 e6i6 g9g10 h4f3 g10f10")
+        self.assertIsNotNone(game)
+
+    def test_uci_usi3(self):
+        uci_usi = "position fen rbna1anbr/4k4/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/4K4/RBNA1ABNR w - - 0 1 moves i4h4 " \
+                  "g10f8 h1g3 b8g8 a4b4 g7f7 g4f4 g8g2 c1d3 e9e9 b3e3 h8e8 h4g4 g2c2 b1d4 b10d7 h3f3 i10i8 i1h1 d7f4 " \
+                  "g4f4 i8g8 g3i4 i7h7 h1h7 g8g2 e2e1 f8h7 d1e2 c10d8 f3d1 d10e10 f1f2 c7b7 a1a5 c2f2 e2f2 e7e6 f2e2 " \
+                  "f7f6 a5h5 g2g7 h5h6 a10d10 d1f1 e9f9 f4f5 f9e9 f5f6 e6d6 f6g6 g7d7 e4e5 e9d9 i4g5 e8b8 g6f6 d7g7 " \
+                  "g5h7 g7g1 h7i9 g1i1 i9g8 b8g8 h6h10 f10e9 e2f2 g8b8 e1e2 b8e8 d3e1 i1i3 f2f3 b7c7 f1d1 c7d7 d4g6 " \
+                  "i3i7 f6e6 d8b7 e6d6 i7i2 f3f2 b7d6 e5e6 i2i5 e6d6 d10b10 d6d7 i5d5 g6d4 d5d7 d1d7 b10a10 d7d1 e9d8 " \
+                  "h10h9 d9d10 d1d8 e10f10 h9h10 d10e10 d8d1 a7b7 d1f1 a10a2 e2d3 a2f2 f1d1 b7c7 h10h8 e10e9 d4g6 " \
+                  "f2f8 h8h9 e9e10 h9c9 f10e9 c9c10 e9d10 c10c7 e10f10 c7e7 d10e9 e7i7 f10f9 i7i9 f9f10 e1g2 e8e10 " \
+                  "g2h4 e9f9 h4i6 f8f4 i6h8 f4f1 d3d2 f9f8 g6d4 f1f2 d2d3 f2f3 i9i1 f8e9 i1e1 f3f4 h8g6 f4f6 d3d3 " \
+                  "e10g10 d3d3 f6f2 e1e2 f2e2 d3e2 g10e10 e2e2 e10e4 e2e2 f10e10 g6e7 e4e8 e7d5 e10f10 d5c7 e8e10 " \
+                  "d1d6 e10e7 d6d3 e7e10 d3f1 e10e5 e2f2 f10e10 d4g2 e9d9 g2e5 d9e9 e5b7 e9f8 c7e8 f8e9 e8g9 e9f9 " \
+                  "f1f9 e10f10 f9f1 f10f10"
+        game = Game.from_uci_usi(
+            RandomPlayer(Color.BLUE),
+            RandomPlayer(Color.RED),
+            uci_usi)
+        self.assertIsNotNone(game)
+
 
 
 class TestBoardSang(BoardTest):

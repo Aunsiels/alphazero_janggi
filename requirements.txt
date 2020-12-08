@@ -4,3 +4,4 @@ pytest-profiling
 numpy==1.19.4
 torch
 flask
+websocket_client

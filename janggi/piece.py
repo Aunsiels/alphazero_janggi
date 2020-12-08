@@ -43,8 +43,17 @@ class Piece:
     def is_potentially_threatening(self, x_threat, y_threat):
         raise NotImplementedError
 
+    def get_fen(self):
+        raise NotImplementedError
+
 
 class Soldier(Piece):
+
+    def get_fen(self):
+        if self.color == Color.BLUE:
+            return "P"
+        else:
+            return "p"
 
     def get_points(self):
         return 2
@@ -103,6 +112,9 @@ class Soldier(Piece):
 
 
 class Cannon(Piece):
+
+    def get_fen(self):
+        return repr(self)
 
     def get_points(self):
         return 7
@@ -178,6 +190,9 @@ class Cannon(Piece):
 
 class General(Piece):
 
+    def get_fen(self):
+        return repr(self)
+
     def get_points(self):
         return 0
 
@@ -228,6 +243,9 @@ class General(Piece):
 
 
 class Chariot(Piece):
+
+    def get_fen(self):
+        return repr(self)
 
     def get_points(self):
         return 13
@@ -324,6 +342,12 @@ class Chariot(Piece):
 
 class Elephant(Piece):
 
+    def get_fen(self):
+        if self.color == Color.BLUE:
+            return "B"
+        else:
+            return "b"
+
     def get_points(self):
         return 3
 
@@ -379,6 +403,12 @@ class Elephant(Piece):
 
 class Horse(Piece):
 
+    def get_fen(self):
+        if self.color == Color.BLUE:
+            return "N"
+        else:
+            return "n"
+
     def get_points(self):
         return 5
 
@@ -428,6 +458,12 @@ class Horse(Piece):
 
 
 class Guard(Piece):
+
+    def get_fen(self):
+        if self.color == Color.BLUE:
+            return "A"
+        else:
+            return "a"
 
     def get_points(self):
         return 3

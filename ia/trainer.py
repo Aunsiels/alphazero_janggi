@@ -138,6 +138,7 @@ class Trainer:
         examples_all = []
         blue_starting = None
         red_starting = None
+        fen_starting = None
         board = None
         is_blue = True
         round = 0
@@ -154,6 +155,7 @@ class Trainer:
                 # End game
                 blue_starting = None
                 red_starting = None
+                fen_starting = None
                 board = None
                 is_blue = True
                 round = 0
@@ -161,13 +163,18 @@ class Trainer:
                 game_number += 1
                 if game_number == limit:
                     break
-            elif blue_starting is None:
+            elif "/" in line:
+                fen_starting = line
+            elif fen_starting is None and blue_starting is None:
                 blue_starting = line
-            elif red_starting is None:
+            elif fen_starting is None and red_starting is None:
                 red_starting = line
             else:
                 if board is None:
-                    board = Board(start_blue=blue_starting, start_red=red_starting)
+                    if fen_starting is None:
+                        board = Board(start_blue=blue_starting, start_red=red_starting)
+                    else:
+                        board = Board.from_fen(fen_starting)
                 if line == "XXXX":
                     action = None
                     get_policy = get_none_action_policy

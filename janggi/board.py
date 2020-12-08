@@ -1,4 +1,5 @@
 import itertools
+import math
 
 import torch
 from janggi.piece import Soldier, Cannon, General, Chariot, Elephant, Horse, Guard
@@ -57,6 +58,49 @@ class Board:
                     board.set(x, y, Soldier(x, y, color, board))
         board._initialise_pieces_per_color()
         return board
+
+    @classmethod
+    def from_fen(cls, fen):
+        fen = fen.replace("--", "- -")
+        string = fen.split(" ")[0].strip()
+        string = "\n".join(string.split("/")[::-1])
+        string = string.replace("p", "s")
+        string = string.replace("P", "S")
+        string = string.replace("b", "e")
+        string = string.replace("B", "E")
+        string = string.replace("n", "h")
+        string = string.replace("N", "H")
+        string = string.replace("a", "g")
+        string = string.replace("A", "G")
+        for i in range(10):
+            string = string.replace(str(i), "." * i)
+        return Board.from_string(string)
+
+    def to_fen(self, current_player, n_rounds):
+        board = []
+        for x in range(BOARD_HEIGHT - 1, -1, -1):
+            empty_squares = 0
+            res_temp = ""
+            for y in range(BOARD_WIDTH):
+                current = self.get(x, y)
+                if current is None:
+                    empty_squares += 1
+                else:
+                    if empty_squares != 0:
+                        res_temp += str(empty_squares)
+                        empty_squares = 0
+                    res_temp += current.get_fen()
+            if empty_squares != 0:
+                res_temp += str(empty_squares)
+            board.append(res_temp)
+        res = "/".join(board) + " "
+        if current_player == Color.BLUE:
+            res += "w"
+        else:
+            res += "b"
+        n_rounds_final = 1 + int(math.ceil(n_rounds / 2))
+        res += " - - 1 " + str(n_rounds_final)  # The one is the number of half moves without capture
+        return res
 
     def _initialise_pieces_per_color(self):
         self._blue_pieces = []
@@ -284,6 +328,8 @@ class Board:
         self._apply_move(action)
 
     def _apply_move(self, action):
+        if action.x_from == action.x_to and action.y_from == action.y_to:
+            return
         piece_from = self.get(action.x_from, action.y_from)
         piece_from.x = action.x_to
         piece_from.y = action.y_to
@@ -365,7 +411,6 @@ class Board:
         features[7 * 2 + 1, :, :] = n_round
         # features = features.to(DEVICE)
         return features
-
 
 
 def get_action_piece(piece):
