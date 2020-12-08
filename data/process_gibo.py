@@ -115,4 +115,4 @@ for root, dirs, files in os.walk("gibo_files/", topdown=False):
                     header.append(line)
 
 with open("game_data.txt", "w") as f:
-    f.write("\n".join(res))
+    f.write("\n".join(res) + "\n")
