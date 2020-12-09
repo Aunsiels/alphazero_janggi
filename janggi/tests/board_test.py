@@ -2,6 +2,7 @@ import unittest
 
 import numpy as np
 
+from janggi.action import Action
 from janggi.board import Board, ActionCacheNode
 from janggi.game import Game
 from janggi.player import RandomPlayer
@@ -359,6 +360,11 @@ class TestBoardGwee(BoardTest):
             RandomPlayer(Color.RED),
             uci_usi)
         self.assertIsNotNone(game)
+
+    def test_strange_move_chariot(self):
+        board = Board.from_fen("2b1akb1B/2r6/4C2c1/5p3/1p1P1Pp2/9/1PnN5/5R3/2B1K4/5AN2 w - - 1 67")
+        actions = board.get(2, 5).get_actions()
+        self.assertNotIn(Action(2, 5, 1, 4), actions)
 
 
 

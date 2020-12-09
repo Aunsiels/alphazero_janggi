@@ -21,6 +21,55 @@ SYMMETRY_Y = [0, 1, 2, 3, 4, 5, 6, 7, 8,  # North
               ]
 
 
+UCI_USI_CONVERSIONS = {
+    "a": "0",
+    "b": "1",
+    "c": "2",
+    "d": "3",
+    "e": "4",
+    "f": "5",
+    "g": "6",
+    "h": "7",
+    "i": "8",
+    "1": "0",
+    "2": "1",
+    "3": "2",
+    "4": "3",
+    "5": "4",
+    "6": "5",
+    "7": "6",
+    "8": "7",
+    "9": "8",
+    "10": "9",
+    "X": "9"
+}
+
+UCI_USI_X = {
+    0: "1",
+    1: "2",
+    2: "3",
+    3: "4",
+    4: "5",
+    5: "6",
+    6: "7",
+    7: "8",
+    8: "9",
+    9: "10",
+}
+
+UCI_USI_Y = {
+    0: "a",
+    1: "b",
+    2: "c",
+    3: "d",
+    4: "e",
+    5: "f",
+    6: "g",
+    7: "h",
+    8: "i",
+}
+
+
 class Action(object):
 
     __slots__ = ('x_from', 'y_from', "x_to", "y_to", "eaten", "_hash")
@@ -32,6 +81,25 @@ class Action(object):
         self.y_to = y_to
         self.eaten = None
         self._hash = hash((self.x_from, self.y_from, self.x_to, self.y_to))
+
+    @classmethod
+    def from_uci_usi(cls, move):
+        move = move.replace("10", "X")
+        for i in range(1, 10):
+            move = move.replace(str(i), UCI_USI_CONVERSIONS[str(i)])
+        for letter in ["a", "b", "c", "d", "e", "f", "g", "h", "i", "X"]:
+            move = move.replace(letter, UCI_USI_CONVERSIONS[letter])
+        x_from = move[1]
+        y_from = move[0]
+        x_to = move[3]
+        y_to = move[2]
+        return Action(int(x_from), int(y_from), int(x_to), int(y_to))
+
+    def to_uci_usi(self):
+        return UCI_USI_Y[self.y_from] + \
+               UCI_USI_X[self.x_from] + \
+               UCI_USI_Y[self.y_to] + \
+               UCI_USI_X[self.x_to]
 
     def get_x_from(self, symmetry=False):
         if symmetry:

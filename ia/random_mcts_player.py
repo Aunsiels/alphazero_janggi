@@ -117,6 +117,7 @@ def fight(player_blue, player_red, iter_max):
     print("Score RED:", board.get_score(Color.RED))
     print(repr(board))
     print(board)
+    print(game.to_uci_usi())
     return winner
 
 

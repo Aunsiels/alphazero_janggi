@@ -317,7 +317,7 @@ class Chariot(Piece):
         if not is_in_diagonal_fortress:
             return
         center_fortress_is_occupied = self.board.get(center_x, center_y) is not None
-        if center_fortress_is_occupied and self.board.get(center_x, center_y) != self.color:
+        if center_fortress_is_occupied and self.board.get(center_x, center_y).color != self.color:
             actions.append(Action(self.x, self.y, center_x, center_y))
         elif not center_fortress_is_occupied:
             actions.append(Action(self.x, self.y, center_x, center_y))

@@ -5,30 +5,6 @@ from janggi.board import Board
 from janggi.utils import Color
 
 
-UCI_USI_CONVERSIONS = {
-    "a": "0",
-    "b": "1",
-    "c": "2",
-    "d": "3",
-    "e": "4",
-    "f": "5",
-    "g": "6",
-    "h": "7",
-    "i": "8",
-    "1": "0",
-    "2": "1",
-    "3": "2",
-    "4": "3",
-    "5": "4",
-    "6": "5",
-    "7": "6",
-    "8": "7",
-    "9": "8",
-    "10": "9",
-    "X": "9"
-}
-
-
 class Game:
 
     def __init__(self, player_blue, player_red, board):
@@ -67,18 +43,20 @@ class Game:
         moves = uci_usi_split[9:]
         game = Game.from_fen(player_blue, player_red, fen)
         for move in moves:
-            move = move.replace("10", "X")
-            for i in range(1, 10):
-                move = move.replace(str(i), UCI_USI_CONVERSIONS[str(i)])
-            for letter in ["a", "b", "c", "d", "e", "f", "g", "h", "i", "X"]:
-                move = move.replace(letter, UCI_USI_CONVERSIONS[letter])
-            x_from = move[1]
-            y_from = move[0]
-            x_to = move[3]
-            y_to = move[2]
-            action = Action(int(x_from), int(y_from), int(x_to), int(y_to))
+            action = Action.from_uci_usi(move)
             game.apply_action(action)
         return game
+
+    def to_uci_usi(self):
+        board_temp = Board(self.board.start_blue, self.board.start_red)
+        res_l = ["position", "fen", board_temp.to_fen(Color.BLUE, 0),
+                 "moves"]
+        for action in self.actions:
+            if action is None:
+                res_l.append("a1a1")
+            else:
+                res_l.append(action.to_uci_usi())
+        return " ".join(res_l)
 
     def run_game(self, iter_max=-1):
         begin_game_time = time.time()
@@ -86,18 +64,23 @@ class Game:
             # print(self.round, self.current_player)
             # begin_time = time.time()
             new_action = self.get_next_action()
-            # print(new_action)
             self.apply_action(new_action)
+            print(new_action, new_action.eaten)
+            print(self.current_player, self.board.get_score(self.current_player))
             # print(time.time() - begin_time)
             #print(repr(self.board))
             #print(self.board)
             #print(new_action)
         end_game_time = time.time()
         print("Mean time per action", (end_game_time - begin_game_time) / self.round)
-        if not self.board.is_finished(self.current_player):
+        is_finished = self.board.is_finished(self.current_player)
+        if self.round == iter_max:
+            print("Max round win")
+        elif not is_finished:
+            print("Score too low win.")
+        if not is_finished:
             score_BLUE = self.board.get_score(Color.BLUE)
             score_RED = self.board.get_score(Color.RED)
-            print("Max round win")
             if score_BLUE > score_RED:
                 return Color.BLUE
             else:
