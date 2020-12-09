@@ -367,7 +367,6 @@ class TestBoardGwee(BoardTest):
         self.assertNotIn(Action(2, 5, 1, 4), actions)
 
 
-
 class TestBoardSang(BoardTest):
 
     def setUp(self) -> None:

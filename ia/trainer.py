@@ -237,6 +237,7 @@ class Trainer:
         print("Start the fights!")
         for i in range(N_FIGHTS):
             if i < N_FIGHTS / 2:
+                print("I am BLUE")
                 new_player = NNPlayer(Color.BLUE,
                                       n_simulations=self.n_simulations,
                                       janggi_net=self.predictor,
@@ -253,6 +254,7 @@ class Trainer:
                 if winner == Color.BLUE:
                     victories += 1
             else:
+                print("I am RED")
                 new_player = NNPlayer(Color.RED,
                                       n_simulations=self.n_simulations,
                                       janggi_net=self.predictor,
