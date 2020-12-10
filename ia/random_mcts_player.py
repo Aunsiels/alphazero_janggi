@@ -7,7 +7,7 @@ from ia.mcts import MCTS, MCTSNode
 from janggi.board import Board
 from janggi.game import Game
 from janggi.player import Player
-from janggi.utils import Color, DEVICE, get_symmetries
+from janggi.utils import Color, DEVICE, get_symmetries, get_random_board
 
 DEFAULT_TEMPERATURE_END = 1
 
@@ -29,13 +29,13 @@ class RandomMCTSPlayer(Player):
     def _apply_latest_actions(self):
         for i in range(self.last_action_index, len(self.game.actions)):
             action = self.game.actions[i]
-            previous_node = self.current_node
             if action in self.current_node.next_nodes:
                 self.current_node = self.current_node.next_nodes[action]
             else:
-                self.current_node = MCTSNode()
-            del previous_node
-        self.last_action_index = len(self.game.actions) - 1
+                node = MCTSNode()
+                self.current_node.next_nodes[action] = node
+                self.current_node = node
+        self.last_action_index = len(self.game.actions)
 
     def __init__(self, color, c_puct=DEFAULT_C_PUCT, n_simulations=DEFAULT_N_SIMULATIONS, current_node=None,
                  temperature_start=DEFAULT_TEMPERATURE_START, temperature_threshold=DEFAULT_TEMPERATURE_THRESHOLD,
@@ -107,9 +107,7 @@ def play_againt_normal(player_blue, n_simulations, iter_max):
 
 
 def fight(player_blue, player_red, iter_max):
-    start_blue = random.choice(["won", "sang", "yang", "gwee"])
-    start_red = random.choice(["won", "sang", "yang", "gwee"])
-    board = Board(start_blue=start_blue, start_red=start_red)
+    board = get_random_board()
     game = Game(player_blue, player_red, board)
     winner = game.run_game(iter_max)
     print("Winner:", winner)

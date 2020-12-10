@@ -2,6 +2,8 @@ import itertools
 import math
 
 import torch
+
+from janggi.action import Action
 from janggi.piece import Soldier, Cannon, General, Chariot, Elephant, Horse, Guard
 from janggi.utils import BOARD_HEIGHT, BOARD_WIDTH, Color
 
@@ -99,7 +101,7 @@ class Board:
         else:
             res += "b"
         n_rounds_final = 1 + int(math.ceil(n_rounds / 2))
-        res += " - - 1 " + str(n_rounds_final)  # The one is the number of half moves without capture
+        res += " - - 0 " + str(n_rounds_final)  # The one is the number of half moves without capture
         return res
 
     def _initialise_pieces_per_color(self):
@@ -283,6 +285,8 @@ class Board:
 
             self.reverse_action(action)
         actions = filtered_actions
+        if not actions:
+            actions.append(Action(0, 0, 0, 0))
 
         # Put in cache
         if color == Color.RED:
@@ -328,7 +332,7 @@ class Board:
         self._apply_move(action)
 
     def _apply_move(self, action):
-        if action.x_from == action.x_to and action.y_from == action.y_to:
+        if action.is_pass():
             return
         piece_from = self.get(action.x_from, action.y_from)
         piece_from.x = action.x_to
@@ -352,7 +356,7 @@ class Board:
         self.previous_boards[board_str] = self.previous_boards.get(board_str, 0) - 1
         self._current_action_cache_node = self._current_action_cache_node.parent
 
-        if action is None:
+        if action is None or action.is_pass():
             # We do nothing
             return
 

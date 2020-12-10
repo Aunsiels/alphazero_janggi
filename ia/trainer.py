@@ -1,4 +1,5 @@
 import copy
+import json
 import os
 import random
 import time
@@ -14,7 +15,7 @@ from janggi.action import Action, get_none_action_policy
 from janggi.board import Board
 from janggi.game import Game
 from janggi.player import RandomPlayer
-from janggi.utils import Color, DEVICE
+from janggi.utils import Color, DEVICE, get_random_board
 
 from multiprocessing import current_process
 
@@ -55,6 +56,119 @@ def set_winner(examples, winner):
             example[2] = -1
 
 
+def json_to_examples(line, examples, proba=None):
+    game_json = json.loads(line)
+    board = Board.from_fen(game_json["initial_fen"])
+    is_blue = True
+    round = 0
+    if game_json["winner"] == "BLUE":
+        winner = 1
+    else:
+        winner = -1
+    for move in game_json["moves"]:
+        played = Action.from_uci_usi(move["played"])
+        node = MCTSNode()
+        node.total_N = move["total_N"]
+        for action_uci_usi, value in move["N"].items():
+            node.N[Action.from_uci_usi(action_uci_usi)] = value
+        update_examples(board, examples, node.get_policy, is_blue, proba, round, winner=winner)
+        board.apply_action(played)
+        round += 1
+        is_blue = not is_blue
+
+
+def _raw_to_examples(line_iterator, limit=-1, proba=None):
+    game_number = 1
+    examples_all = []
+    blue_starting = None
+    red_starting = None
+    fen_starting = None
+    board = None
+    is_blue = True
+    round = 0
+    examples = []
+    for line in line_iterator:
+        line = line.strip()
+        if "{" in line:
+            json_to_examples(line, examples_all, proba)
+        elif line == "":
+            if is_blue:
+                winner = Color.RED
+            else:
+                winner = Color.BLUE
+            set_winner(examples, winner)
+            examples_all += examples
+            # End game
+            blue_starting = None
+            red_starting = None
+            fen_starting = None
+            board = None
+            is_blue = True
+            round = 0
+            examples = []
+            game_number += 1
+            if game_number == limit:
+                break
+        elif "/" in line:
+            fen_starting = line
+        elif fen_starting is None and blue_starting is None:
+            blue_starting = line
+        elif fen_starting is None and red_starting is None:
+            red_starting = line
+        else:
+            if board is None:
+                if fen_starting is None:
+                    board = Board(start_blue=blue_starting, start_red=red_starting)
+                else:
+                    board = Board.from_fen(fen_starting)
+            if line == "XXXX":
+                action = None
+                get_policy = get_none_action_policy
+            else:
+                action = Action(int(line[0]), int(line[1]), int(line[2]), int(line[3]))
+                get_policy = action.get_policy
+            update_examples(board, examples, get_policy, is_blue, proba, round)
+            board.apply_action(action)
+            round += 1
+            is_blue = not is_blue
+    if is_blue:
+        winner = Color.RED
+    else:
+        winner = Color.BLUE
+    set_winner(examples, winner)
+    examples_all += examples
+    print("READ", game_number, "games.")
+    return examples_all
+
+
+def update_examples(board, examples, get_policy, is_blue, proba, round, winner=None):
+    if winner is None:
+        if is_blue:
+            winner = Color.BLUE
+        else:
+            winner = Color.RED
+    if is_blue:
+        if proba is None or random.random() < proba:
+            examples.append([board.get_features(Color.BLUE, round),
+                             get_policy(Color.BLUE),
+                             winner])
+        if proba is None or random.random() < proba:
+            examples.append([board.get_features(Color.BLUE, round, data_augmentation=True),
+                             get_policy(Color.BLUE,
+                                        data_augmentation=True),
+                             winner])
+    else:
+        if proba is None or random.random() < proba:
+            examples.append([board.get_features(Color.RED, round, data_augmentation=True),
+                             get_policy(Color.RED,
+                                        data_augmentation=True),
+                             winner])
+        if proba is None or random.random() < proba:
+            examples.append([board.get_features(Color.RED, round),
+                             get_policy(Color.RED),
+                             winner])
+
+
 class Trainer:
 
     def __init__(self, predictor, n_simulations=800, iter_max=200, n_simulation_opponent=800, dir_base="model"):
@@ -70,9 +184,7 @@ class Trainer:
 
     def run_episode(self):
         examples = []
-        start_blue = random.choice(["won", "sang", "yang", "gwee"])
-        start_red = random.choice(["won", "sang", "yang", "gwee"])
-        board = Board(start_blue=start_blue, start_red=start_red)
+        board = get_random_board()
         initial_node = MCTSNode(is_initial=True)
         player_blue = NNPlayer(Color.BLUE, n_simulations=self.n_simulations,
                                current_node=initial_node,
@@ -129,89 +241,9 @@ class Trainer:
     def learn_supervised(self, training_file):
         print("Generate training data...")
         with open(training_file) as f:
-            examples_all = self._raw_to_examples(f)
+            examples_all = _raw_to_examples(f)
         print("Start training")
         self.train_and_fight(examples_all)
-
-    def _raw_to_examples(self, line_iterator, limit=-1, proba=None):
-        game_number = 1
-        examples_all = []
-        blue_starting = None
-        red_starting = None
-        fen_starting = None
-        board = None
-        is_blue = True
-        round = 0
-        examples = []
-        for line in line_iterator:
-            line = line.strip()
-            if line == "":
-                if is_blue:
-                    winner = Color.RED
-                else:
-                    winner = Color.BLUE
-                set_winner(examples, winner)
-                examples_all += examples
-                # End game
-                blue_starting = None
-                red_starting = None
-                fen_starting = None
-                board = None
-                is_blue = True
-                round = 0
-                examples = []
-                game_number += 1
-                if game_number == limit:
-                    break
-            elif "/" in line:
-                fen_starting = line
-            elif fen_starting is None and blue_starting is None:
-                blue_starting = line
-            elif fen_starting is None and red_starting is None:
-                red_starting = line
-            else:
-                if board is None:
-                    if fen_starting is None:
-                        board = Board(start_blue=blue_starting, start_red=red_starting)
-                    else:
-                        board = Board.from_fen(fen_starting)
-                if line == "XXXX":
-                    action = None
-                    get_policy = get_none_action_policy
-                else:
-                    action = Action(int(line[0]), int(line[1]), int(line[2]), int(line[3]))
-                    get_policy = action.get_policy
-                if is_blue:
-                    if proba is None or random.random() < proba:
-                        examples.append([board.get_features(Color.BLUE, round),
-                                         get_policy(Color.BLUE),
-                                         Color.BLUE])
-                    if proba is None or random.random() < proba:
-                        examples.append([board.get_features(Color.BLUE, round, data_augmentation=True),
-                                         get_policy(Color.BLUE,
-                                                    data_augmentation=True),
-                                         Color.BLUE])
-                else:
-                    if proba is None or random.random() < proba:
-                        examples.append([board.get_features(Color.RED, round, data_augmentation=True),
-                                         get_policy(Color.RED,
-                                                    data_augmentation=True),
-                                         Color.RED])
-                    if proba is None or random.random() < proba:
-                        examples.append([board.get_features(Color.RED, round),
-                                         get_policy(Color.RED),
-                                         Color.RED])
-                board.apply_action(action)
-                round += 1
-                is_blue = not is_blue
-        if is_blue:
-            winner = Color.RED
-        else:
-            winner = Color.BLUE
-        set_winner(examples, winner)
-        examples_all += examples
-        print("READ", game_number, "games.")
-        return examples_all
 
     def continuous_learning(self):
         while True:
@@ -225,7 +257,7 @@ class Trainer:
     def continuous_learning_once(self):
         # First, train
         for _ in range(EPOCH_NUMBER_CONTINUOUS):
-            training_set = self._raw_to_examples(self.model_saver.all_episodes_raw_iterators(),
+            training_set = _raw_to_examples(self.model_saver.all_episodes_raw_iterators(),
                                                  N_LAST_GAME_TO_CONSIDER,
                                                  PROP_POPULATION_FOR_LEARNING)
             self.train(training_set)
@@ -523,9 +555,7 @@ def run_episode_independant(args):
     begin_time = time.time()
     predictor, n_simulations, iter_max = args
     examples = []
-    start_blue = random.choice(["won", "sang", "yang", "gwee"])
-    start_red = random.choice(["won", "sang", "yang", "gwee"])
-    board = Board(start_blue=start_blue, start_red=start_red)
+    board = get_random_board()
     initial_node = MCTSNode(is_initial=True)
     player_blue = NNPlayer(Color.BLUE, n_simulations=n_simulations,
                            current_node=initial_node,
@@ -572,9 +602,7 @@ def run_episode_raw(args):
     print("Starting episode", current_process().name)
     begin_time = time.time()
     predictor, n_simulations, iter_max = args
-    start_blue = random.choice(["won", "sang", "yang", "gwee"])
-    start_red = random.choice(["won", "sang", "yang", "gwee"])
-    board = Board(start_blue=start_blue, start_red=start_red)
+    board = get_random_board()
     initial_node = MCTSNode(is_initial=True)
     player_blue = NNPlayer(Color.BLUE, n_simulations=n_simulations,
                            current_node=initial_node,
@@ -591,16 +619,14 @@ def run_episode_raw(args):
                           temperature_end=0.01)
     game = run_game(board, player_blue, player_red, iter_max)
     print("Time Episode: ", time.time() - begin_time)
-    return game.dumps()
+    return game.to_json(initial_node)
 
 
 def run_episode_raw_not_nn(args):
     print("Starting episode", current_process().name)
     begin_time = time.time()
     n_simulations, iter_max = args
-    start_blue = random.choice(["won", "sang", "yang", "gwee"])
-    start_red = random.choice(["won", "sang", "yang", "gwee"])
-    board = Board(start_blue=start_blue, start_red=start_red)
+    board = get_random_board()
     initial_node = MCTSNode(is_initial=True)
     player_blue = RandomMCTSPlayer(Color.BLUE, n_simulations=n_simulations,
                                    current_node=initial_node,
@@ -615,7 +641,7 @@ def run_episode_raw_not_nn(args):
                                   temperature_end=0.01)
     game = run_game(board, player_blue, player_red, iter_max)
     print("Time Episode: ", time.time() - begin_time)
-    return game.dumps()
+    return game.to_json(initial_node)
 
 
 def run_game(board, player_blue, player_red, iter_max):

@@ -121,6 +121,9 @@ class Action(object):
             return BOARD_WIDTH - 1 - self.y_to
         return self.y_to
 
+    def is_pass(self):
+        return self.x_from == self.x_to and self.y_from == self.y_to
+
     def __str__(self):
         return "Action(" + str(self.x_from) + ", " + str(self.y_from) + ", " \
                + str(self.x_to) + ", " + str(self.y_to) + ")"

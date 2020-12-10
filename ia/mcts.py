@@ -43,13 +43,12 @@ class MCTSNode:
         policy = torch.zeros((58, 10, 9))
         symmetry_x, symmetry_y = get_symmetries(current_player, data_augmentation)
         for action, value in self.N.items():
-            if action is None:
+            if action is None or action.is_pass():
                 continue
             total_temp = self.total_N
             if total_temp != 0:
                 policy[action.get_features(symmetry_x, symmetry_y),
                        action.get_x_from(symmetry_x), action.get_y_from(symmetry_y)] = value / total_temp
-        # return policy.to(DEVICE)
         return policy
 
 
@@ -87,8 +86,6 @@ class MCTS:
             if u > u_max:
                 u_max = u
                 best_action = action
-            # elif np.isnan(u) and best_action is None:
-            #     best_action = action
         # Best action is None when there is no legal move
 
         game.board.apply_action(best_action)
@@ -111,7 +108,7 @@ class MCTS:
         return -value
 
     def choose_action(self, current_node, game, predictor):
-        for _ in range(self.n_simulations - current_node.total_N):
+        for _ in range(self.n_simulations - current_node.total_N + 1):
             self.run_simulation(current_node, game, predictor)
         items = list(current_node.N.items())
         total = current_node.total_N

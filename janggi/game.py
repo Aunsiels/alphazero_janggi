@@ -1,3 +1,4 @@
+import json
 import time
 
 from janggi.action import Action
@@ -65,12 +66,12 @@ class Game:
             # begin_time = time.time()
             new_action = self.get_next_action()
             self.apply_action(new_action)
-            print(new_action, new_action.eaten)
-            print(self.current_player, self.board.get_score(self.current_player))
+            # print(new_action, new_action.eaten)
+            # print(self.current_player, self.board.get_score(self.current_player))
             # print(time.time() - begin_time)
-            #print(repr(self.board))
-            #print(self.board)
-            #print(new_action)
+            # print(repr(self.board))
+            # print(self.board)
+            # print(new_action)
         end_game_time = time.time()
         print("Mean time per action", (end_game_time - begin_game_time) / self.round)
         is_finished = self.board.is_finished(self.current_player)
@@ -157,3 +158,31 @@ class Game:
         if self.get_winner() == self.current_player:
             res.append("XXXX")
         return "\n".join(res) + "\n"
+
+    def to_json(self, mcts_node=None):
+        result = dict()
+        result["initial_fen"] = Board(self.board.start_blue, self.board.start_red).to_fen(Color.BLUE, 0)
+        winner = self.get_winner()
+        if winner == Color.BLUE:
+            result["winner"] = "BLUE"
+        else:
+            result["winner"] = "RED"
+        result["moves"] = []
+        current_node = mcts_node
+        for action in self.actions:
+            temp = dict()
+            temp["played"] = action.to_uci_usi()
+            if current_node is not None:
+                temp["total_N"] = current_node.total_N
+                temp["N"] = dict()
+                for action_mcts, value in current_node.N.items():
+                    temp["N"][action_mcts.to_uci_usi()] = value
+                if action in current_node.next_nodes:
+                    current_node = current_node.next_nodes[action]
+                else:
+                    current_node = None
+            else:
+                temp["total_N"] = 1
+                temp["N"] = {action.to_uci_usi(): 1}
+            result["moves"].append(temp)
+        return json.dumps(result)

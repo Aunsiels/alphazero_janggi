@@ -19,3 +19,8 @@ class TestAction(unittest.TestCase):
                         all_hashes.add(hash(action0))
         self.assertEqual(len(all_actions), 10 * 10 * 9 * 9)
         self.assertEqual(len(all_hashes), 10 * 10 * 9 * 9)
+
+    def test_pass(self):
+        action = Action(0, 0, 0, 0)
+        self.assertTrue(action.is_pass())
+        print(action.get_features())
