@@ -499,7 +499,8 @@ class ModelSaver:
 
     def all_episodes_raw_iterators(self):
         filenames = os.listdir(self.episode_raw_path)
-        filenames = sorted(filenames, key=lambda filename: -int(filename[len("episode_"):]))
+        mini = self.get_lowest_index_episode_raw()
+        filenames = sorted(filenames, key=lambda filename: get_order(filename, mini))
         for filename in filenames:
             with open(self.episode_raw_path + filename) as f:
                 for line in f:
@@ -540,6 +541,13 @@ class ModelSaver:
         while last_index != -1:
             self.rename_episode_raw_by_index(last_index)
             last_index = self.get_last_episode_raw_index()
+
+
+def get_order(filename, mini):
+    temp = int(filename[len("episode_"):])
+    if temp >= -2:
+        return -temp
+    return temp + 3 - mini
 
 
 def run_episode(trainer):
