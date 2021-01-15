@@ -7,7 +7,7 @@ import urllib.request
 import torch
 import torch.multiprocessing as mp
 
-from ia.trainer import run_episode_independant
+from ia.trainer import run_episode_independant, ModelSaver, run_episode_raw
 
 N_POOLS = 3
 N_SIMULATIONS = 10
@@ -63,9 +63,12 @@ class ServicePredictorSocket:
 
 
 if __name__ == "__main__":
-    begin_time = time.time()
-    predictor = ServicePredictorSocket()
-    with mp.Pool(N_POOLS) as pool:
-        episodes = pool.map(run_episode_independant,
-                            [(predictor, N_SIMULATIONS, ITER_MAX) for _ in range(N_EPISODES)])
-    print("Total time:", time.time() - begin_time)
+    while True:
+        begin_time = time.time()
+        predictor = ServicePredictorSocket()
+        model_saver = ModelSaver()
+        with mp.Pool(N_POOLS) as pool:
+            episodes = pool.map(run_episode_raw,
+                                [(predictor, N_SIMULATIONS, ITER_MAX) for _ in range(N_EPISODES)])
+        model_saver.save_episodes_raw(episodes)
+        print("Total time:", time.time() - begin_time)

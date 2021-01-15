@@ -4,10 +4,8 @@ import random
 import torch
 import numpy as np
 
+from janggi.parameters import DIRICHLET_ALPHA, DIRICHLET_EPSILON
 from janggi.utils import get_symmetries
-
-DIRICHLET_ALPHA = 0.03
-DIRICHLET_EPSILON = 0.25
 
 
 class MCTSNode:

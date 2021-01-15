@@ -1,23 +1,13 @@
-import random
 
 import torch
 
 from ia.janggi_network import JanggiNetwork
 from ia.mcts import MCTS, MCTSNode
-from janggi.board import Board
 from janggi.game import Game
+from janggi.parameters import DEFAULT_TEMPERATURE_END, DEFAULT_TEMPERATURE_THRESHOLD, DEFAULT_TEMPERATURE_START, \
+    DEFAULT_N_SIMULATIONS, DEFAULT_C_PUCT
 from janggi.player import Player
 from janggi.utils import Color, DEVICE, get_symmetries, get_random_board
-
-DEFAULT_TEMPERATURE_END = 1
-
-DEFAULT_TEMPERATURE_THRESHOLD = 30
-
-DEFAULT_TEMPERATURE_START = 1
-
-DEFAULT_N_SIMULATIONS = 800
-
-DEFAULT_C_PUCT = 4
 
 
 class RandomMCTSPlayer(Player):

@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 
+from janggi.parameters import N_RESIDUAL_DEFAULT
 from janggi.utils import BOARD_HEIGHT, BOARD_WIDTH
 
 ACTION_SIZE = 58
@@ -9,8 +10,6 @@ OUT_CHANNEL = 256
 STRIDE_SIZE = 3
 OUT_CONV_POLICY = 2
 OUT_LINEAR_VALUE = 256
-
-N_RESIDUAL_DEFAULT = 2
 
 
 class JanggiNetwork(nn.Module):

@@ -5,7 +5,7 @@ from time import sleep
 
 import torch
 
-STOCKFISH_LOCATION = 'D:/Downloads/fairy-stockfish-largeboard_x86-64.exe'
+from janggi.parameters import STOCKFISH_LOCATION
 
 BOARD_HEIGHT = 10
 BOARD_WIDTH = 9
@@ -43,7 +43,12 @@ def get_random_board():
     return board
 
 
-def get_process_stockfish(board):
+def get_process_stockfish(board, time_control="st 30"):
+    # Possible time controls:
+    # st 30 -> 30 seconds per move
+    # level 40 5 0 -> 40 moves in 5 minutes, 0=conventional clock time
+    # level 40 0:30 0 -> 40 moves in 30 seconds
+    # level 0 2 12 -> All game in 2 minutes, with an increment of 12 seconds
     process = subprocess.Popen([STOCKFISH_LOCATION],
                                stdin=subprocess.PIPE,
                                stdout=subprocess.PIPE,
@@ -52,5 +57,6 @@ def get_process_stockfish(board):
     process.stdin.write("xboard\n")
     process.stdin.write("variant janggi\n")
     process.stdin.write("setboard " + board.to_fen(Color.BLUE, 0) + "\n")
+    process.stdin.write(time_control + "\n")
     process.stdin.flush()
     return process

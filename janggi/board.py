@@ -4,10 +4,9 @@ import math
 import torch
 
 from janggi.action import Action
+from janggi.parameters import MAX_REPETITIONS
 from janggi.piece import Soldier, Cannon, General, Chariot, Elephant, Horse, Guard
 from janggi.utils import BOARD_HEIGHT, BOARD_WIDTH, Color
-
-MAX_REPETITIONS = 3
 
 
 class Board:

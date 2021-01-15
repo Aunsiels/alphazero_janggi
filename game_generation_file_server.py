@@ -1,8 +1,8 @@
 import os
 import pickle
-import random
 import time
 import multiprocessing as mp
+import urllib.request
 
 import torch
 
@@ -25,29 +25,27 @@ if not os.path.isdir(OLD_DIR):
     os.mkdir(OLD_DIR)
 
 
-class FilePredictor:
+HOSTNAME = "localhost"
+PORT = 5000
+URL = "http://" + HOSTNAME + ":" + str(PORT) + "/predict"
+
+
+class FileServerPredictor:
 
     def __call__(self, features):
-        filename = '{:010.6f}'.format(time.time()) + '{:01.10f}'.format(random.random())
-        with open(NEW_DIR + filename + ".tmp", "wb") as f:
-            pickle.dump(features, f)
-        os.rename(NEW_DIR + filename + ".tmp", NEW_DIR + filename)
-        while True:
-            if os.path.isfile(OLD_DIR + filename):
-                try:
-                    with open(OLD_DIR + filename, "rb") as f:
-                        policy, value = pickle.load(f)
-                    os.remove(OLD_DIR + filename)
-                    policy = torch.unsqueeze(policy, dim=0)
-                    value = torch.unsqueeze(value, dim=0)
-                    return policy, value
-                except PermissionError:
-                    continue
+        features = pickle.dumps(features)
+        req = urllib.request.Request(URL)
+        req.add_header('Content-Length', len(features))
+        response = urllib.request.urlopen(req, features)
+        policy, value = pickle.loads(response.read())
+        policy = torch.unsqueeze(policy, dim=0)
+        value = torch.unsqueeze(value, dim=0)
+        return policy, value
 
 
 if __name__ == "__main__":
     model_saver = ModelSaver()
-    predictor = FilePredictor()
+    predictor = FileServerPredictor()
 
     while True:
         begin_time = time.time()

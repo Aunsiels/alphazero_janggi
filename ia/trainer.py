@@ -14,36 +14,13 @@ from ia.random_mcts_player import NNPlayer, fight, RandomMCTSPlayer
 from janggi.action import Action, get_none_action_policy
 from janggi.board import Board
 from janggi.game import Game
+from janggi.parameters import PROP_POPULATION_FOR_LEARNING, N_LAST_GAME_TO_CONSIDER, LEARNING_RATE, EPOCH_NUMBER, \
+    EPOCH_NUMBER_CONTINUOUS, WAINTING_TIME_IF_NO_EPISODE, N_FIGHTS, VICTORY_THRESHOLD, LOG_PRINT_FREQ, BATCH_SIZE
 from janggi.player import RandomPlayer
-from janggi.utils import Color, DEVICE, get_random_board
+from janggi.stockfish_player import StockfishPlayer
+from janggi.utils import Color, DEVICE, get_random_board, get_process_stockfish
 
 from multiprocessing import current_process
-
-# Learning rate of the optimizer
-PROP_POPULATION_FOR_LEARNING = 1 / 50
-N_LAST_GAME_TO_CONSIDER = 500000
-LEARNING_RATE = 0.001
-
-# Number of epoch when learning
-EPOCH_NUMBER = 1
-# Number of epoch when learning continuously
-EPOCH_NUMBER_CONTINUOUS = 1
-# When there is no episode to process, just wait
-WAINTING_TIME_IF_NO_EPISODE = 1000
-
-# For check if a model is better than the previous one, we perform some fights
-N_FIGHTS = 100
-# If the new model wins more than a certain percentage of games, we update the current model
-VICTORY_THRESHOLD = 55
-
-# When learning with existing data, how many game do we consider at once (
-SUPERVISED_GAMES_FREQ = 30000
-
-# During training, how often do we print loss
-LOG_PRINT_FREQ = 1000
-
-# For training
-BATCH_SIZE = 16
 
 
 def set_winner(examples, winner):
@@ -258,8 +235,8 @@ class Trainer:
         # First, train
         for _ in range(EPOCH_NUMBER_CONTINUOUS):
             training_set = _raw_to_examples(self.model_saver.all_episodes_raw_iterators(),
-                                                 N_LAST_GAME_TO_CONSIDER,
-                                                 PROP_POPULATION_FOR_LEARNING)
+                                            N_LAST_GAME_TO_CONSIDER,
+                                            PROP_POPULATION_FOR_LEARNING)
             self.train(training_set)
         # Then, fight!
         old_model = copy.deepcopy(self.predictor)
@@ -650,6 +627,19 @@ def run_episode_raw_not_nn(args):
     game = run_game(board, player_blue, player_red, iter_max)
     print("Time Episode: ", time.time() - begin_time)
     return game.to_json(initial_node)
+
+
+def run_episode_stockfish(args):
+    print("Starting episode", current_process().name)
+    begin_time = time.time()
+    iter_max = args
+    board = get_random_board()
+    process = get_process_stockfish(board)
+    player_blue = StockfishPlayer(Color.BLUE, process, think_time=2)
+    player_red = StockfishPlayer(Color.RED, process, think_time=2)
+    game = run_game(board, player_blue, player_red, iter_max)
+    print("Time Episode: ", time.time() - begin_time)
+    return game.dumps()
 
 
 def run_game(board, player_blue, player_red, iter_max):

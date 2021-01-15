@@ -21,9 +21,9 @@ class TestPlayer(unittest.TestCase):
 
     def test_stockfish(self):
         board = get_random_board()
-        process = get_process_stockfish(board)
-        player_blue = StockfishPlayer(Color.BLUE, process, think_time=2)
-        player_red = StockfishPlayer(Color.RED, process, think_time=2)
+        process = get_process_stockfish(board, "level 40 5 0")
+        player_blue = StockfishPlayer(Color.BLUE, process, think_time=-1)
+        player_red = StockfishPlayer(Color.RED, process, think_time=-1)
         game = Game(player_blue, player_red, board)
         winner = game.run_game(200)
         print(winner)
