@@ -8,21 +8,11 @@ import torch
 
 from ia.trainer import ModelSaver, run_episode_raw
 
-BASE_DIR = "inference/"
-NEW_DIR = "inference/new/"
-OLD_DIR = "inference/old/"
 
 N_POOLS = 4
 N_SIMULATIONS = 100
 ITER_MAX = 100
 N_EPISODES = N_POOLS
-
-if not os.path.isdir(BASE_DIR):
-    os.mkdir(BASE_DIR)
-if not os.path.isdir(NEW_DIR):
-    os.mkdir(NEW_DIR)
-if not os.path.isdir(OLD_DIR):
-    os.mkdir(OLD_DIR)
 
 
 HOSTNAME = "localhost"
