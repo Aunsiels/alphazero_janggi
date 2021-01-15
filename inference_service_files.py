@@ -1,11 +1,18 @@
 import os
 import pickle
+import threading
+import time
+from queue import Queue
 
 import torch
 
 from ia.janggi_network import JanggiNetwork
 from ia.trainer import ModelSaver
 from janggi.utils import DEVICE
+
+
+MULTITHREADED = True
+
 
 BASE_DIR = "inference/"
 NEW_DIR = "inference/new/"
@@ -33,7 +40,18 @@ def get_next_batch():
     filenames = sorted(
         filter(lambda x: not x.endswith(".tmp"),
                os.listdir(NEW_DIR)))[:BATCH_SIZE]
+    arrays = get_features_list(filenames)
+    if filenames:
+        features = torch.cat(arrays)
+        return features, filenames
+    else:
+        return None, filenames
+
+
+def get_features_list(filenames):
     arrays = []
+    if len(filenames) == BATCH_SIZE:
+        print("FULL")
     for filename in filenames:
         while True:
             try:
@@ -43,11 +61,7 @@ def get_next_batch():
                 break
             except PermissionError:
                 continue
-    if filenames:
-        features = torch.cat(arrays)
-        return features, filenames
-    else:
-        return None, filenames
+    return arrays
 
 
 def save_results(policy, value, filenames):
@@ -72,11 +86,87 @@ def get_model():
     return model
 
 
-if __name__ == "__main__":
-    model = get_model()
+INPUT_QUEUE = Queue()
+OUTPUT_QUEUE = Queue()
+
+
+def read_features_thread():
+    print("Start features thread.")
     while True:
-        features, filenames = get_next_batch()
-        if not filenames:
+        filenames = sorted(
+            filter(lambda x: not x.endswith(".tmp"),
+                   os.listdir(NEW_DIR)))[:BATCH_SIZE]
+        arrays = get_features_list(filenames)
+        if not arrays:
+            time.sleep(0.001)
             continue
+        for features, filename in zip(arrays, filenames):
+            INPUT_QUEUE.put((features, filename))
+
+
+def prediction_thread():
+    print("Start prediction thread.")
+    model = get_model()
+    begin_time = time.time()
+    total_processed = 0
+    while True:
+        if INPUT_QUEUE.empty():
+            time.sleep(0.001)
+            continue
+        arrays = []
+        filenames = []
+        while len(arrays) < BATCH_SIZE and not INPUT_QUEUE.empty():
+            features, filename = INPUT_QUEUE.get()
+            arrays.append(features)
+            filenames.append(filename)
+        features = torch.cat(arrays)
+
+        total_processed += len(filenames)
+        if time.time() - begin_time > 10:
+            print(int(total_processed / (time.time() - begin_time)), "annotations per second", end="\r")
+            begin_time = time.time()
+            total_processed = 0
+
         policy, value = get_policy_value(model, features)
+        OUTPUT_QUEUE.put((policy, value, filenames))
+
+
+def save_thread():
+    print("Start saving thread.")
+    while True:
+        if OUTPUT_QUEUE.empty():
+            time.sleep(0.001)
+            continue
+        policy, value, filenames = OUTPUT_QUEUE.get()
         save_results(policy, value, filenames)
+
+
+if __name__ == "__main__":
+    if MULTITHREADED:
+        loading_thread = threading.Thread(target=read_features_thread)
+        processing_thread = threading.Thread(target=prediction_thread)
+        saving_thread = threading.Thread(target=save_thread)
+        print("START THREADS")
+        loading_thread.start()
+        processing_thread.start()
+        saving_thread.start()
+        print("STARTED")
+        processing_thread.join()
+    else:
+        model = get_model()
+        begin_time = time.time()
+        total_processed = 0
+
+        while True:
+            features, filenames = get_next_batch()
+            if not filenames:
+                continue
+
+            total_processed += len(filenames)
+            if time.time() - begin_time > 10:
+                print(int(total_processed / (time.time() - begin_time)), "annotations per second", end="\r")
+                begin_time = time.time()
+                total_processed = 0
+
+            policy, value = get_policy_value(model, features)
+            save_results(policy, value, filenames)

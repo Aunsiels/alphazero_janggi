@@ -2,7 +2,7 @@ import time
 import os
 import random
 
-from flask import Flask, jsonify, request
+from flask import Flask, request
 
 
 BASE_DIR = "inference/"
@@ -23,7 +23,6 @@ app = Flask(__name__)
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    print("reception")
     if request.method == 'POST':
         features = request.get_data()
         filename = '{:010.6f}'.format(time.time()) + '{:01.10f}'.format(random.random())
