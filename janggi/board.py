@@ -299,7 +299,9 @@ class Board:
         score = self.get_score(color)
         return score == 0 or \
                (score < 20 and last_action is not None and last_action.eaten is None) or \
-               (len(self.get_actions(color)) == 0 and self.is_check(color))
+               (len(self.get_actions(color)) == 0 and self.is_check(color)) or \
+               not self._blue_general.is_alive or \
+               not self._red_general.is_alive
 
     def is_check(self, color):
         if color == Color.BLUE:

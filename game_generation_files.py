@@ -42,6 +42,7 @@ class FilePredictor:
                     value = torch.unsqueeze(value, dim=0)
                     return policy, value
                 except PermissionError:
+                    time.sleep(0.01)
                     continue
 
 

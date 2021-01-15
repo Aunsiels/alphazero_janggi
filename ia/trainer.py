@@ -23,6 +23,9 @@ from janggi.utils import Color, DEVICE, get_random_board, get_process_stockfish
 from multiprocessing import current_process
 
 
+ONLY_NN_GENERATED = False
+
+
 def set_winner(examples, winner):
     for example in examples:
         if winner == Color.BLUE and example[2] == Color.BLUE:
@@ -34,7 +37,12 @@ def set_winner(examples, winner):
 
 
 def json_to_examples(line, examples, proba=None):
-    game_json = json.loads(line)
+    try:
+        game_json = json.loads(line)
+    except json.decoder.JSONDecodeError:
+        print("Problem with", line)
+        return
+
     board = Board.from_fen(game_json["initial_fen"])
     is_blue = True
     round = 0
@@ -68,6 +76,9 @@ def _raw_to_examples(line_iterator, limit=-1, proba=None):
         line = line.strip()
         if "{" in line:
             json_to_examples(line, examples_all, proba)
+            game_number += 1
+            if game_number >= limit:
+                break
         elif line == "":
             if is_blue:
                 winner = Color.RED
@@ -84,7 +95,7 @@ def _raw_to_examples(line_iterator, limit=-1, proba=None):
             round = 0
             examples = []
             game_number += 1
-            if game_number == limit:
+            if game_number >= limit:
                 break
         elif "/" in line:
             fen_starting = line
@@ -105,7 +116,10 @@ def _raw_to_examples(line_iterator, limit=-1, proba=None):
                 action = Action(int(line[0]), int(line[1]), int(line[2]), int(line[3]))
                 get_policy = action.get_policy
             update_examples(board, examples, get_policy, is_blue, proba, round)
-            board.apply_action(action)
+            try:
+                board.apply_action(action)
+            except AttributeError:
+                print("Wrong action", action, ", round:", round)
             round += 1
             is_blue = not is_blue
     if is_blue:
@@ -479,6 +493,10 @@ class ModelSaver:
         mini = self.get_lowest_index_episode_raw()
         filenames = sorted(filenames, key=lambda filename: get_order(filename, mini))
         for filename in filenames:
+            if ONLY_NN_GENERATED:
+                idx = int(filename[len("episode_"):])
+                if idx <= 0:
+                    continue
             with open(self.episode_raw_path + filename) as f:
                 for line in f:
                     yield line
