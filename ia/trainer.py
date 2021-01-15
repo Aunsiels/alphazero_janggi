@@ -625,6 +625,13 @@ def run_episode_raw(args):
     return game.to_json(initial_node)
 
 
+def run_episode_raw_loop(predictor, n_simulations, iter_max, queue):
+    new_args = (predictor, n_simulations, iter_max)
+    while True:
+        result = run_episode_raw(new_args)
+        queue.put(result)
+
+
 def run_episode_raw_not_nn(args):
     print("Starting episode", current_process().name)
     begin_time = time.time()

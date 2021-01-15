@@ -6,15 +6,17 @@ import multiprocessing as mp
 
 import torch
 
-from ia.trainer import ModelSaver, run_episode_raw
+from ia.trainer import ModelSaver, run_episode_raw, run_episode_raw_loop
 
 BASE_DIR = "inference/"
 NEW_DIR = "inference/new/"
 OLD_DIR = "inference/old/"
 
+WITH_POOL = False
+
 N_POOLS = 4
-N_SIMULATIONS = 100
-ITER_MAX = 100
+N_SIMULATIONS = 10
+ITER_MAX = 10
 N_EPISODES = N_POOLS
 
 if not os.path.isdir(BASE_DIR):
@@ -46,14 +48,43 @@ class FilePredictor:
                     continue
 
 
+def save_queue_process(queue):
+    model_saver = ModelSaver()
+    begin_time = time.time()
+    while True:
+        if queue.qsize() < N_EPISODES:
+            time.sleep(1)
+            continue
+        episodes = []
+        for _ in range(N_EPISODES):
+            episodes.append(queue.get())
+        model_saver.save_episodes_raw(episodes)
+        print("Total time:", time.time() - begin_time)
+        begin_time = time.time()
+
+
 if __name__ == "__main__":
     model_saver = ModelSaver()
     predictor = FilePredictor()
 
     while True:
-        begin_time = time.time()
-        with mp.Pool(N_POOLS) as pool:
-            episodes = pool.map(run_episode_raw,
-                                [(predictor, N_SIMULATIONS, ITER_MAX) for _ in range(N_EPISODES)])
-        model_saver.save_episodes_raw(episodes)
-        print("Total time:", time.time() - begin_time)
+        if WITH_POOL:
+            begin_time = time.time()
+            with mp.Pool(N_POOLS) as pool:
+                episodes = pool.map(run_episode_raw,
+                                    [(predictor, N_SIMULATIONS, ITER_MAX) for _ in range(N_EPISODES)])
+            model_saver.save_episodes_raw(episodes)
+            print("Total time:", time.time() - begin_time)
+        else:
+            OUTPUT_QUEUE = mp.Queue()
+            processes = []
+            saving_process = mp.Process(target=save_queue_process,
+                                        args=(OUTPUT_QUEUE,))
+            saving_process.start()
+            for _ in range(N_POOLS):
+                processes.append(mp.Process(target=run_episode_raw_loop,
+                                            args=(predictor, N_SIMULATIONS, ITER_MAX, OUTPUT_QUEUE)))
+            for process in processes:
+                process.start()
+            for process in processes:
+                process.join()
