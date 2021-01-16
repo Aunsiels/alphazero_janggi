@@ -1,18 +1,19 @@
 import json
 import pickle
 import socket
-import time
 import urllib.request
 
 import torch
-import torch.multiprocessing as mp
 
-from ia.trainer import run_episode_independant, ModelSaver, run_episode_raw
+from ia.utils import generate_games
 
+
+WITH_POOL = False
 N_POOLS = 3
 N_SIMULATIONS = 10
 ITER_MAX = 10
 N_EPISODES = 20
+WEB_SERVICE = False
 
 
 class ServicePredictorWeb:
@@ -63,12 +64,8 @@ class ServicePredictorSocket:
 
 
 if __name__ == "__main__":
-    while True:
-        begin_time = time.time()
+    if WEB_SERVICE:
+        predictor = ServicePredictorWeb()
+    else:
         predictor = ServicePredictorSocket()
-        model_saver = ModelSaver()
-        with mp.Pool(N_POOLS) as pool:
-            episodes = pool.map(run_episode_raw,
-                                [(predictor, N_SIMULATIONS, ITER_MAX) for _ in range(N_EPISODES)])
-        model_saver.save_episodes_raw(episodes)
-        print("Total time:", time.time() - begin_time)
+    generate_games(predictor, N_SIMULATIONS, ITER_MAX, WITH_POOL, N_POOLS, N_EPISODES)

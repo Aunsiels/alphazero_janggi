@@ -2,11 +2,10 @@ import os
 import pickle
 import random
 import time
-import multiprocessing as mp
 
 import torch
 
-from ia.trainer import ModelSaver, run_episode_raw, run_episode_raw_loop
+from ia.utils import generate_games
 
 BASE_DIR = "inference/"
 NEW_DIR = "inference/new/"
@@ -48,43 +47,6 @@ class FilePredictor:
                     continue
 
 
-def save_queue_process(queue):
-    model_saver = ModelSaver()
-    begin_time = time.time()
-    while True:
-        if queue.qsize() < N_EPISODES:
-            time.sleep(1)
-            continue
-        episodes = []
-        for _ in range(N_EPISODES):
-            episodes.append(queue.get())
-        model_saver.save_episodes_raw(episodes)
-        print("Total time:", time.time() - begin_time)
-        begin_time = time.time()
-
-
 if __name__ == "__main__":
-    model_saver = ModelSaver()
     predictor = FilePredictor()
-
-    while True:
-        if WITH_POOL:
-            begin_time = time.time()
-            with mp.Pool(N_POOLS) as pool:
-                episodes = pool.map(run_episode_raw,
-                                    [(predictor, N_SIMULATIONS, ITER_MAX) for _ in range(N_EPISODES)])
-            model_saver.save_episodes_raw(episodes)
-            print("Total time:", time.time() - begin_time)
-        else:
-            OUTPUT_QUEUE = mp.Queue()
-            processes = []
-            saving_process = mp.Process(target=save_queue_process,
-                                        args=(OUTPUT_QUEUE,))
-            saving_process.start()
-            for _ in range(N_POOLS):
-                processes.append(mp.Process(target=run_episode_raw_loop,
-                                            args=(predictor, N_SIMULATIONS, ITER_MAX, OUTPUT_QUEUE)))
-            for process in processes:
-                process.start()
-            for process in processes:
-                process.join()
+    generate_games(predictor, N_SIMULATIONS, ITER_MAX, WITH_POOL, N_POOLS, N_EPISODES)

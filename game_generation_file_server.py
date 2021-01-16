@@ -1,13 +1,11 @@
-import os
 import pickle
-import time
-import multiprocessing as mp
 import urllib.request
 
 import torch
 
-from ia.trainer import ModelSaver, run_episode_raw
+from ia.utils import generate_games
 
+WITH_POOL = False
 
 N_POOLS = 4
 N_SIMULATIONS = 100
@@ -34,13 +32,6 @@ class FileServerPredictor:
 
 
 if __name__ == "__main__":
-    model_saver = ModelSaver()
     predictor = FileServerPredictor()
 
-    while True:
-        begin_time = time.time()
-        with mp.Pool(N_POOLS) as pool:
-            episodes = pool.map(run_episode_raw,
-                                [(predictor, N_SIMULATIONS, ITER_MAX) for _ in range(N_EPISODES)])
-        model_saver.save_episodes_raw(episodes)
-        print("Total time:", time.time() - begin_time)
+    generate_games(predictor, N_SIMULATIONS, ITER_MAX, WITH_POOL, N_POOLS, N_EPISODES)
