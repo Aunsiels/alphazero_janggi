@@ -1,68 +1,68 @@
 import argparse
 
 parser = argparse.ArgumentParser(description='A program to train Janggi IA.')
-parser.add_argument("--stockfish_location", nargs=1,
+parser.add_argument("--stockfish_location",
                     default="D:/Downloads/fairy-stockfish-largeboard_x86-64.exe", type=str,
                     required=False, help="The location of the game engine.")
-parser.add_argument("--max_repetitions", nargs=1,
+parser.add_argument("--max_repetitions",
                     default=3, type=int,
                     required=False, help="The number of times a board position can repeat.")
-parser.add_argument("--n_residuals", nargs=1,
+parser.add_argument("--n_residuals",
                     default=2, type=int,
                     required=False, help="The number of residual layer in the neural network.")
-parser.add_argument("--dirichlet_alpha", nargs=1,
+parser.add_argument("--dirichlet_alpha",
                     default=0.03, type=float,
                     required=False, help="Dirichlet alpha used at the beginning of the MCTS.")
-parser.add_argument("--dirichlet_epsilon", nargs=1,
+parser.add_argument("--dirichlet_epsilon",
                     default=0.25, type=float,
                     required=False, help="Proportion of dirichlet distribution at the beginning of the MCTS.")
-parser.add_argument("--temperature_start", nargs=1,
+parser.add_argument("--temperature_start",
                     default=1.0, type=float,
                     required=False, help="Temperature at the beginning of the MCTS.")
-parser.add_argument("--temperature_end", nargs=1,
+parser.add_argument("--temperature_end",
                     default=1.0, type=float,
                     required=False, help="Temperature at the end of the MCTS.")
-parser.add_argument("--temperature_threshold", nargs=1,
+parser.add_argument("--temperature_threshold",
                     default=30, type=int,
                     required=False, help="Round threshold at which we change the temperature.")
-parser.add_argument("--number_simulations", nargs=1,
+parser.add_argument("--number_simulations",
                     default=800, type=int,
                     required=False, help="Number of simulations in the MCTS.")
-parser.add_argument("--c_puct", nargs=1,
+parser.add_argument("--c_puct",
                     default=4.0, type=float,
                     required=False, help="C_PUCT parameter in the MCTS.")
 
-parser.add_argument("--prop_population_learning", nargs=1,
+parser.add_argument("--prop_population_learning",
                     default=1/50, type=float,
                     required=False, help="Proportion of the moves to consider during training.")
-parser.add_argument("--n_last_games", nargs=1,
+parser.add_argument("--n_last_games",
                     default=500000, type=int,
                     required=False, help="Number of previous games to consider for training.")
-parser.add_argument("--learning_rate", nargs=1,
+parser.add_argument("--learning_rate",
                     default=0.001, type=float,
                     required=False, help="Learning rate during training.")
-parser.add_argument("--n_epoch", nargs=1,
+parser.add_argument("--n_epoch",
                     default=1, type=int,
                     required=False, help="Number of epoch during training.")
-parser.add_argument("--n_epoch_continuous", nargs=1,
+parser.add_argument("--n_epoch_continuous",
                     default=1, type=int,
                     required=False, help="Number of times to train between two evaluations in continuous learning.")
-parser.add_argument("--waiting_time_no_episode", nargs=1,
+parser.add_argument("--waiting_time_no_episode",
                     default=1000, type=float,
                     required=False, help="Waiting time if there is no episode to consider (in seconds).")
-parser.add_argument("--n_fights", nargs=1,
+parser.add_argument("--n_fights",
                     default=100, type=int,
                     required=False, help="Number of fights in evaluation.")
-parser.add_argument("--victory_threshold", nargs=1,
+parser.add_argument("--victory_threshold",
                     default=55.0, type=float,
                     required=False, help="Percentage of victory to update model.")
-parser.add_argument("--n_games_supervised", nargs=1,
+parser.add_argument("--n_games_supervised",
                     default=30000, type=int,
                     required=False, help="Number of games to consider at once in supervised learning.")
-parser.add_argument("--log_frequency", nargs=1,
+parser.add_argument("--log_frequency",
                     default=1000, type=int,
                     required=False, help="How often should we write log during training.")
-parser.add_argument("--batch_size", nargs=1,
+parser.add_argument("--batch_size",
                     default=16, type=int,
                     required=False, help="Batch size during the training.")
 
