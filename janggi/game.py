@@ -66,8 +66,10 @@ class Game:
         while not self.is_finished(iter_max):
             # print(self.round, self.current_player)
             # begin_time = time.time()
+            self.stop_thinking()
             new_action = self.get_next_action()
             self.apply_action(new_action)
+            self.start_thinking()
             # print(new_action, new_action.eaten)
             # print(self.current_player, self.board.get_score(self.current_player))
             # print(time.time() - begin_time)
@@ -112,14 +114,22 @@ class Game:
 
     def get_next_action(self):
         if self.current_player == Color.BLUE:
-            self.player_blue.stop_thinking()
             new_action = self.player_blue.play_action()
-            self.player_blue.think()
+        else:
+            new_action = self.player_red.play_action()
+        return new_action
+
+    def stop_thinking(self):
+        if self.current_player == Color.BLUE:
+            self.player_blue.stop_thinking()
         else:
             self.player_red.stop_thinking()
-            new_action = self.player_red.play_action()
+
+    def start_thinking(self):
+        if self.current_player == Color.BLUE:
+            self.player_blue.think()
+        else:
             self.player_red.think()
-        return new_action
 
     def get_current_actions(self):
         return self.board.get_actions(self.current_player)
