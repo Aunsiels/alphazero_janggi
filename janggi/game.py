@@ -77,6 +77,8 @@ class Game:
                 print(repr(self.board))
             # print(self.board)
             # print(new_action)
+        self.player_blue.stop_thinking()
+        self.player_red.stop_thinking()
         end_game_time = time.time()
         print("Mean time per action", (end_game_time - begin_game_time) / self.round)
         is_finished = self.board.is_finished(self.current_player)
