@@ -10,6 +10,12 @@ class Player:
     def play_action(self):
         raise NotImplementedError
 
+    def think(self):
+        pass
+
+    def stop_thinking(self):
+        pass
+
 
 class RandomPlayer(Player):
 

@@ -18,8 +18,10 @@ class MCTSNode:
         self.next_nodes = dict()
         self.is_initial = is_initial
         self.total_N = 0
+        self.predicted_value = 0
 
-    def set_up(self, probabiliies, current_player, actions):
+    def set_up(self, probabiliies, current_player, actions, predicted_value):
+        self.predicted_value = predicted_value
         self.probabilities = probabiliies
         if self.is_initial:
             dirichlet_noise = np.random.dirichlet([DIRICHLET_ALPHA] * len(self.probabilities))
@@ -66,8 +68,8 @@ class MCTS:
 
         if current_node.probabilities is None:
             possible_actions = game.get_current_actions()
-            probabilities, predicted_value = predictor.predict()
-            current_node.set_up(probabilities, game.current_player, possible_actions)
+            probabilities, predicted_value = predictor.predict(game, possible_actions)
+            current_node.set_up(probabilities, game.current_player, possible_actions, predicted_value)
             return -predicted_value
         else:
             possible_actions = list(current_node.q.keys())
@@ -78,24 +80,28 @@ class MCTS:
         for action in possible_actions:
             if action is None:
                 continue
-            u = current_node.q[action] + \
-                self.c_puct * current_node.probabilities[action] * \
-                math.sqrt(current_node.total_N) / (1 + current_node.N[action])
+            try:
+                u = current_node.q[action] + \
+                    self.c_puct * current_node.probabilities[action] * \
+                    math.sqrt(current_node.total_N) / (1 + current_node.N[action])
+            except:
+                print(current_node.probabilities)
+                print(repr(game.board))
+                print(current_node.total_N)
+                raise
             if u > u_max:
                 u_max = u
                 best_action = action
         # Best action is None when there is no legal move
 
-        game.board.apply_action(best_action)
-        game.switch_player()
+        game.apply_action(best_action, invalidate_cache=False)
         if best_action not in current_node.next_nodes:
             next_node = MCTSNode()
             current_node.next_nodes[best_action] = next_node
         else:
             next_node = current_node.next_nodes[best_action]
         value = self.run_simulation(next_node, game, predictor)
-        game.board.reverse_action(best_action)
-        game.switch_player()
+        game.reverse_action()
 
         # Might be a problem if not enough simulations
         current_node.q[best_action] = (current_node.N[best_action] * current_node.q[best_action] + value) \

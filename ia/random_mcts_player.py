@@ -1,3 +1,4 @@
+import threading
 
 import torch
 
@@ -6,7 +7,7 @@ from ia.mcts import MCTS, MCTSNode
 from janggi.game import Game
 from janggi.parameters import DEFAULT_TEMPERATURE_END, DEFAULT_TEMPERATURE_THRESHOLD, DEFAULT_TEMPERATURE_START, \
     DEFAULT_N_SIMULATIONS, DEFAULT_C_PUCT
-from janggi.player import Player
+from janggi.player import Player, RandomPlayer
 from janggi.utils import Color, DEVICE, get_symmetries, get_random_board
 
 
@@ -14,7 +15,17 @@ class RandomMCTSPlayer(Player):
 
     def play_action(self):
         self._apply_latest_actions()
-        return self.mcts.choose_action(self.current_node, self.game, self)
+        action = self.mcts.choose_action(self.current_node, self.game, self)
+        if self.print_info:
+            print("Current Predicted Value:", self.current_node.predicted_value)
+            print("Action Played:", action.to_uci_usi())
+            print("Number Simulations:", self.current_node.total_N)
+            print("Top Probabilities:")
+            best_actions = sorted(self.current_node.N.items(), key=lambda x: -x[1])[:10]
+            for best_action, score in best_actions:
+                if self.current_node.total_N != 0:
+                    print(best_action.to_uci_usi(), score / self.current_node.total_N)
+        return action
 
     def _apply_latest_actions(self):
         for i in range(self.last_action_index, len(self.game.actions)):
@@ -29,18 +40,37 @@ class RandomMCTSPlayer(Player):
 
     def __init__(self, color, c_puct=DEFAULT_C_PUCT, n_simulations=DEFAULT_N_SIMULATIONS, current_node=None,
                  temperature_start=DEFAULT_TEMPERATURE_START, temperature_threshold=DEFAULT_TEMPERATURE_THRESHOLD,
-                 temperature_end=DEFAULT_TEMPERATURE_END):
+                 temperature_end=DEFAULT_TEMPERATURE_END, think_when_other=False, print_info=False):
         super().__init__(color)
         self.mcts = MCTS(c_puct, n_simulations, temperature_start, temperature_threshold, temperature_end)
         self.current_node = current_node or MCTSNode()
         self.last_action_index = 0
+        self.think_when_other = think_when_other
+        self.thinking_thread = None
+        self.thinking_event = None
+        self.print_info = print_info
 
-    def predict(self):
-        actions = self.game.get_current_actions()
-        diff_score = (self.game.board.get_score(Color.BLUE) - self.game.board.get_score(Color.RED)) / 73.5 / 10
-        if self.game.current_player == Color.RED:
+    def predict(self, game, actions):
+        diff_score = (game.board.get_score(Color.BLUE) - game.board.get_score(Color.RED)) / 73.5 / 2
+        if game.current_player == Color.RED:
             diff_score *= -1
         return {action: 1 / len(actions) for action in actions}, diff_score
+
+    def think(self):
+        if self.think_when_other:
+            self._apply_latest_actions()
+            self.thinking_event = threading.Event()
+            # Copy game
+            game_uci_usi = self.game.to_uci_usi()
+            game = self.game.from_uci_usi(RandomPlayer(Color.BLUE), RandomPlayer(Color.RED), game_uci_usi)
+            self.thinking_thread = ThreadKeepThinking(self.mcts, self.current_node, game, self, self.thinking_event)
+            self.thinking_thread.start()
+
+    def stop_thinking(self):
+        if self.think_when_other and self.thinking_thread is not None:
+            self.thinking_event.set()
+            self.thinking_thread.join()
+            self.thinking_thread = None
 
 
 class NNPlayer(RandomMCTSPlayer):
@@ -57,13 +87,12 @@ class NNPlayer(RandomMCTSPlayer):
         else:
             self._is_predictor = False
 
-    def predict(self):
-        actions = self.game.get_current_actions()
-        features = self.game.get_features()
+    def predict(self, game, actions):
+        features = game.get_features()
         features = torch.unsqueeze(features, 0)
         if self._is_predictor:
             features = features.to(DEVICE)
-        symm_x, symm_y = get_symmetries(self.game.current_player)
+        symm_x, symm_y = get_symmetries(game.current_player)
         with torch.no_grad():
             policy, value = self.janggi_net(features)
             actions_proba = dict()
@@ -86,6 +115,21 @@ class NNPlayer(RandomMCTSPlayer):
         return actions_proba, value
 
 
+class ThreadKeepThinking(threading.Thread):
+
+    def __init__(self, mcts, current_node, game, predictor, event):
+        super().__init__()
+        self.mcts = mcts
+        self.current_node = current_node
+        self.game = game
+        self.predictor = predictor
+        self.event = event
+
+    def run(self) -> None:
+        while not self.event.is_set():
+            self.mcts.run_simulation(self.current_node, self.game, self.predictor)
+
+
 def run_a_game():
     player_blue = NNPlayer(Color.BLUE, n_simulations=100)
     play_againt_normal(player_blue, 100, 200)
@@ -96,10 +140,10 @@ def play_againt_normal(player_blue, n_simulations, iter_max):
     fight(player_blue, player_red, iter_max)
 
 
-def fight(player_blue, player_red, iter_max):
+def fight(player_blue, player_red, iter_max, print_board=False):
     board = get_random_board()
     game = Game(player_blue, player_red, board)
-    winner = game.run_game(iter_max)
+    winner = game.run_game(iter_max, print_board=print_board)
     print("Winner:", winner)
     print("Score BLUE:", board.get_score(Color.BLUE))
     print("Score RED:", board.get_score(Color.RED))

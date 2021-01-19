@@ -237,6 +237,10 @@ class BoardTest(unittest.TestCase):
         self.board._initialise_pieces_per_color()
         self.assertEqual(len(self.board.get_actions(Color.BLUE)), 1)
 
+    def test_read_strange(self):
+        board = Board.from_fen("1bnaa1bn1/R8/5k1cr/1p2p1B1p/2p6/9/1PP2P2P/4CCN2/1N2K4/2BA1A2R w - - 0 1")
+        self.assertNotEqual(board.get_actions(Color.RED), [Action(0, 0, 0, 0)])
+
 
 class TestBoardWon(BoardTest):
 
@@ -341,6 +345,18 @@ class TestBoardGwee(BoardTest):
             "moves g4h4 f10e9 i1g1 d10d9 g1g9 d8d10 h3h5 a10a6 e3i3 e7f5 h5e5 a6e6 i3i10 d10f10 "
             "h7f7 f5h4 e5e3 e6i6 g9g10 h4f3 g10f10")
         self.assertIsNotNone(game)
+
+    def test_uci_usi4(self):
+        game = Game.from_uci_usi(
+            RandomPlayer(Color.BLUE),
+            RandomPlayer(Color.RED),
+            "position fen rbna1abnr/4k4/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/4K4/RNBA1ABNR w - - 0 1 "
+            "moves b1c3 a7b7 b3e3 a10a4 c3a4 f10e10 e4d4 e7f7 g1e4 e9f9 h1g3 c7c6 h3f3 f7e7 e4g7 b8b2 a4b2 i10i8 a0a9 "
+            "f9f8 g4f4")
+        action = game.get_current_actions()[0]
+        game.apply_action(action, invalidate_cache=False)
+        game.reverse_action()
+        print(game.get_current_actions())
 
     def test_uci_usi3(self):
         uci_usi = "position fen rbna1anbr/4k4/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/4K4/RBNA1ABNR w - - 0 1 moves i4h4 " \

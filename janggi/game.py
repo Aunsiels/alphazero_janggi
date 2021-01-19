@@ -59,8 +59,10 @@ class Game:
                 res_l.append(action.to_uci_usi())
         return " ".join(res_l)
 
-    def run_game(self, iter_max=-1):
+    def run_game(self, iter_max=-1, print_board=False):
         begin_game_time = time.time()
+        if print_board:
+            print(repr(self.board))
         while not self.is_finished(iter_max):
             # print(self.round, self.current_player)
             # begin_time = time.time()
@@ -69,7 +71,8 @@ class Game:
             # print(new_action, new_action.eaten)
             # print(self.current_player, self.board.get_score(self.current_player))
             # print(time.time() - begin_time)
-            # print(repr(self.board))
+            if print_board:
+                print(repr(self.board))
             # print(self.board)
             # print(new_action)
         end_game_time = time.time()
@@ -90,21 +93,32 @@ class Game:
             print("Check win with", self.round, "rounds")
         return Color(-self.current_player.value)
 
-    def apply_action(self, action):
+    def apply_action(self, action, invalidate_cache=True):
         self.actions.append(action)
         self.board.apply_action(action)
         self.switch_player()
-        self.board.invalidate_action_cache(action)  # Try to reduce memory usage
+        if invalidate_cache:
+            self.board.invalidate_action_cache(action)  # Try to reduce memory usage
         self.round += 1
+
+    def reverse_action(self):
+        action = self.actions.pop()
+        self.board.reverse_action(action)
+        self.switch_player()
+        self.round -= 1
 
     def switch_player(self):
         self.current_player = Color(-self.current_player.value)
 
     def get_next_action(self):
         if self.current_player == Color.BLUE:
+            self.player_blue.stop_thinking()
             new_action = self.player_blue.play_action()
+            self.player_blue.think()
         else:
+            self.player_red.stop_thinking()
             new_action = self.player_red.play_action()
+            self.player_red.think()
         return new_action
 
     def get_current_actions(self):

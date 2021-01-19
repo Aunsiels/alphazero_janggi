@@ -9,6 +9,9 @@ from janggi.piece import Soldier, Cannon, General, Chariot, Elephant, Horse, Gua
 from janggi.utils import BOARD_HEIGHT, BOARD_WIDTH, Color
 
 
+UCI_USI_REPR = False
+
+
 class Board:
 
     def __init__(self, start_blue="yang", start_red="yang"):
@@ -206,7 +209,10 @@ class Board:
         return "\n".join(self._str_sub) + "\n"
 
     def __repr__(self):
-        representation = ["-" + " " + " ".join([str(x) for x in range(9)])]
+        if UCI_USI_REPR:
+            representation = ["-- " + " ".join(["a", "b", "c", "d", "e", "f", "g", "h", "i"])]
+        else:
+            representation = ["-" + " " + " ".join([str(x) for x in range(9)])]
         for x in range(BOARD_HEIGHT - 1, -1, -1):
             to_print = []
             for y in range(BOARD_WIDTH):
@@ -214,7 +220,10 @@ class Board:
                     to_print.append(".")
                 else:
                     to_print.append(str(self.get(x, y)))
-            representation.append(str(x) + " " + " ".join(to_print))
+            if UCI_USI_REPR:
+                representation.append(str(x + 1).zfill(2) + " " + " ".join(to_print))
+            else:
+                representation.append(str(x) + " " + " ".join(to_print))
         return "\n".join(representation) + "\n"
 
     def __hash__(self):
@@ -322,8 +331,6 @@ class Board:
         return False
 
     def apply_action(self, action):
-        board_str = str(self)
-        self.previous_boards[board_str] = self.previous_boards.get(board_str, 0) + 1
         self._set_current_action_cache_node_from_next(action)
 
         if action is None:
@@ -331,6 +338,8 @@ class Board:
             return
 
         self._apply_move(action)
+        board_str = str(self)
+        self.previous_boards[board_str] = self.previous_boards.get(board_str, 0) + 1
 
     def _apply_move(self, action):
         if action.is_pass():
