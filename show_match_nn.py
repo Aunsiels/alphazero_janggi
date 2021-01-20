@@ -15,7 +15,7 @@ player_blue = NNPlayer(Color.BLUE, n_simulations=DEFAULT_N_SIMULATIONS,
                                print_info=True)
 
 player_red = NNPlayer(Color.RED, n_simulations=DEFAULT_N_SIMULATIONS,
-                       janggi_net=JanggiNetwork(FilePredictor()),
+                       janggi_net=FilePredictor(),
                        temperature_start=0.01,
                        temperature_threshold=30,
                        temperature_end=0.01,
