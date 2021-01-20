@@ -66,6 +66,34 @@ parser.add_argument("--batch_size",
                     default=16, type=int,
                     required=False, help="Batch size during the training.")
 
+
+def str2bool(v):
+    if isinstance(v, bool):
+       return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
+parser.add_argument("--parallel_mcts", default=False, type=str2bool, required=False,
+                    help="Whether or not to run a parallel MCTS")
+parser.add_argument("--n_threads_mcts", default=2, type=int, required=False,
+                    help="Number of threads when running MCTS in parallel. Needs --parallel_mcts True")
+
+parser.add_argument("--n_processus", default=2, type=int, required=False,
+                    help="Number of processus")
+
+parser.add_argument("--root_file_inference", default="./", type=str, required=False,
+                    help="Root directory for the file inference.")
+
+parser.add_argument("--n_iterations", default=100, type=int, required=False,
+                    help="The number of iterations")
+parser.add_argument("--n_episodes", default=2, type=int, required=False,
+                    help="Number of episodes.")
+
 args = parser.parse_args()
 
 STOCKFISH_LOCATION = args.stockfish_location  # 'D:/Downloads/fairy-stockfish-largeboard_x86-64.exe'
@@ -107,3 +135,10 @@ LOG_PRINT_FREQ = args.log_frequency
 
 # For training
 BATCH_SIZE = args.batch_size
+PARALLEL_MCTS = args.parallel_mcts
+N_THREADS_MCTS = args.n_threads_mcts
+
+BASE_ROOT_FILES = args.root_file_inference
+N_ITERATIONS = args.n_iterations
+N_PROCESSUS = args.n_processus
+N_EPISODES = args.n_episodes

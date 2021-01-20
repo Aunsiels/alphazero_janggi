@@ -10,16 +10,20 @@ from ia.janggi_network import JanggiNetwork
 from ia.trainer import ModelSaver
 from janggi.utils import DEVICE
 
+from janggi.parameters import BASE_ROOT_FILES, N_RESIDUAL_DEFAULT, BATCH_SIZE
+
+
+# Example of command:
+#    python3 inference_service_files.py --root_file_inference /tmp --n_residuals 20 --batch_size 64
+
 
 MULTITHREADED = True
 
 
-BASE_DIR = "inference/"
-NEW_DIR = "inference/new/"
-OLD_DIR = "inference/old/"
+BASE_DIR = BASE_ROOT_FILES + "/inference/"
+NEW_DIR = BASE_DIR + "new/"
+OLD_DIR = BASE_DIR + "old/"
 
-N_RESIDUAL = 2
-BATCH_SIZE = 16
 
 if not os.path.isdir(BASE_DIR):
     os.mkdir(BASE_DIR)
@@ -74,7 +78,7 @@ def save_results(policy, value, filenames):
 
 
 def get_model():
-    model = JanggiNetwork(N_RESIDUAL)
+    model = JanggiNetwork(N_RESIDUAL_DEFAULT)
 
     def load_latest_model():
         model_saver_temp = ModelSaver()

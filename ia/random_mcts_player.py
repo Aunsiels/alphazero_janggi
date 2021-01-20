@@ -7,7 +7,7 @@ from ia.mcts import MCTS, MCTSNode
 from janggi.game import Game
 from janggi.parameters import DEFAULT_TEMPERATURE_END, DEFAULT_TEMPERATURE_THRESHOLD, DEFAULT_TEMPERATURE_START, \
     DEFAULT_N_SIMULATIONS, DEFAULT_C_PUCT
-from janggi.player import Player, RandomPlayer
+from janggi.player import Player
 from janggi.utils import Color, DEVICE, get_symmetries, get_random_board
 
 
@@ -61,8 +61,7 @@ class RandomMCTSPlayer(Player):
             self._apply_latest_actions()
             self.thinking_event = threading.Event()
             # Copy game
-            game_uci_usi = self.game.to_uci_usi()
-            game = self.game.from_uci_usi(RandomPlayer(Color.BLUE), RandomPlayer(Color.RED), game_uci_usi)
+            game = self.game.fake_copy()
             self.thinking_thread = ThreadKeepThinking(self.mcts, self.current_node, game, self, self.thinking_event)
             self.thinking_thread.start()
 
@@ -78,9 +77,9 @@ class NNPlayer(RandomMCTSPlayer):
     def __init__(self, color, c_puct=DEFAULT_C_PUCT, n_simulations=DEFAULT_N_SIMULATIONS, current_node=None,
                  janggi_net=None,
                  temperature_start=DEFAULT_TEMPERATURE_START, temperature_threshold=DEFAULT_TEMPERATURE_THRESHOLD,
-                 temperature_end=DEFAULT_TEMPERATURE_END):
+                 temperature_end=DEFAULT_TEMPERATURE_END, think_when_other=False, print_info=False):
         super().__init__(color, c_puct, n_simulations, current_node,
-                         temperature_start, temperature_threshold, temperature_end)
+                         temperature_start, temperature_threshold, temperature_end, think_when_other, print_info)
         self.janggi_net = janggi_net or JanggiNetwork()
         if isinstance(self.janggi_net, JanggiNetwork):
             self._is_predictor = True

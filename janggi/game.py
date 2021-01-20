@@ -3,6 +3,7 @@ import time
 
 from janggi.action import Action
 from janggi.board import Board
+from janggi.player import RandomPlayer
 from janggi.utils import Color
 
 
@@ -212,3 +213,7 @@ class Game:
                 temp["N"] = {action.to_uci_usi(): 1}
             result["moves"].append(temp)
         return json.dumps(result)
+
+    def fake_copy(self):
+        game_uci_usi = self.to_uci_usi()
+        return self.from_uci_usi(RandomPlayer(Color.BLUE), RandomPlayer(Color.RED), game_uci_usi)

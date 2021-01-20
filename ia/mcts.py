@@ -1,10 +1,13 @@
 import math
 import random
+import threading
+from queue import Queue
+from threading import Lock
 
 import torch
 import numpy as np
 
-from janggi.parameters import DIRICHLET_ALPHA, DIRICHLET_EPSILON
+from janggi.parameters import DIRICHLET_ALPHA, DIRICHLET_EPSILON, PARALLEL_MCTS, N_THREADS_MCTS
 from janggi.utils import get_symmetries
 
 
@@ -19,6 +22,8 @@ class MCTSNode:
         self.is_initial = is_initial
         self.total_N = 0
         self.predicted_value = 0
+        self.virtual_loss = dict()
+        self.lock = Lock()
 
     def set_up(self, probabiliies, current_player, actions, predicted_value):
         self.predicted_value = predicted_value
@@ -35,9 +40,11 @@ class MCTSNode:
         for action in actions:
             self.q[action] = 0
             self.N[action] = 0
+            self.virtual_loss[action] = 0
         if not actions:
             self.q[None] = 0
             self.N[None] = 0
+            self.virtual_loss[None] = 0
 
     def get_policy(self, current_player, data_augmentation=False):
         policy = torch.zeros((58, 10, 9))
@@ -66,10 +73,12 @@ class MCTS:
             reward = game.get_reward()
             return -reward
 
+        current_node.lock.acquire()
         if current_node.probabilities is None:
             possible_actions = game.get_current_actions()
             probabilities, predicted_value = predictor.predict(game, possible_actions)
             current_node.set_up(probabilities, game.current_player, possible_actions, predicted_value)
+            current_node.lock.release()
             return -predicted_value
         else:
             possible_actions = list(current_node.q.keys())
@@ -83,7 +92,7 @@ class MCTS:
             try:
                 u = current_node.q[action] + \
                     self.c_puct * current_node.probabilities[action] * \
-                    math.sqrt(current_node.total_N) / (1 + current_node.N[action])
+                    math.sqrt(current_node.total_N) / (1 + current_node.N[action]) - current_node.virtual_loss[action]
             except:
                 print(current_node.probabilities)
                 print(repr(game.board))
@@ -100,20 +109,36 @@ class MCTS:
             current_node.next_nodes[best_action] = next_node
         else:
             next_node = current_node.next_nodes[best_action]
+
+        current_node.virtual_loss[best_action] += 1
+        current_node.lock.release()
+
         value = self.run_simulation(next_node, game, predictor)
         game.reverse_action()
 
+        current_node.lock.acquire()
         # Might be a problem if not enough simulations
         current_node.q[best_action] = (current_node.N[best_action] * current_node.q[best_action] + value) \
                                       / (current_node.N[best_action] + 1)
         current_node.N[best_action] += 1
         current_node.total_N += 1
+        current_node.virtual_loss[best_action] -= 1
+        current_node.lock.release()
 
         return -value
 
     def choose_action(self, current_node, game, predictor):
-        for _ in range(self.n_simulations - current_node.total_N + 1):
-            self.run_simulation(current_node, game, predictor)
+        if PARALLEL_MCTS:
+            queue = Queue()
+            [queue.put(i) for i in range(self.n_simulations - current_node.total_N + 1)]
+            games = [game.fake_copy() for _ in range(N_THREADS_MCTS)]
+            threads = [ThreadRunSimulation(self, current_node, games[i], predictor, queue)
+                       for i in range(N_THREADS_MCTS)]
+            [thread.start() for thread in threads]
+            [thread.join() for thread in threads]
+        else:
+            for _ in range(self.n_simulations - current_node.total_N + 1):
+                self.run_simulation(current_node, game, predictor)
         items = list(current_node.N.items())
         total = current_node.total_N
         if game.round > self.temperature_threshold:
@@ -129,3 +154,20 @@ class MCTS:
         else:
             action = None
         return action
+
+
+class ThreadRunSimulation(threading.Thread):
+
+    def __init__(self, mcts, current_node, game, predictor, queue):
+        super().__init__()
+        self.mcts = mcts
+        self.current_node = current_node
+        self.game = game
+        self.predictor = predictor
+        self.queue = queue
+
+    def run(self) -> None:
+        while not self.queue.empty():
+            self.queue.get_nowait()
+            self.mcts.run_simulation(self.current_node, self.game, self.predictor)
+

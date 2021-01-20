@@ -1,10 +1,12 @@
-import time
 import os
+import pickle
 import random
+import time
 
-from flask import Flask, request
+import torch
 
 from janggi.parameters import BASE_ROOT_FILES
+
 
 BASE_DIR = BASE_ROOT_FILES + "/inference/"
 NEW_DIR = BASE_DIR + "new/"
@@ -19,29 +21,23 @@ if not os.path.isdir(OLD_DIR):
     os.mkdir(OLD_DIR)
 
 
-app = Flask(__name__)
+class FilePredictor:
 
-
-@app.route('/predict', methods=['POST'])
-def predict():
-    if request.method == 'POST':
-        features = request.get_data()
+    def __call__(self, features):
         filename = '{:010.6f}'.format(time.time()) + '{:01.10f}'.format(random.random())
         with open(NEW_DIR + filename + ".tmp", "wb") as f:
-            f.write(features)
+            pickle.dump(features, f)
         os.rename(NEW_DIR + filename + ".tmp", NEW_DIR + filename)
+        time.sleep(0.01)
         while True:
             if os.path.isfile(OLD_DIR + filename):
                 try:
                     with open(OLD_DIR + filename, "rb") as f:
-                        result = f.read()
+                        policy, value = pickle.load(f)
                     os.remove(OLD_DIR + filename)
-                    return result
+                    policy = torch.unsqueeze(policy, dim=0)
+                    value = torch.unsqueeze(value, dim=0)
+                    return policy, value
                 except PermissionError:
                     time.sleep(0.01)
                     continue
-    return "404"
-
-
-if __name__ == '__main__':
-    app.run(threaded=True)
