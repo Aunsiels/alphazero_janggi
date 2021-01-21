@@ -6,7 +6,7 @@ from ia.janggi_network import JanggiNetwork
 from ia.mcts import MCTS, MCTSNode
 from janggi.game import Game
 from janggi.parameters import DEFAULT_TEMPERATURE_END, DEFAULT_TEMPERATURE_THRESHOLD, DEFAULT_TEMPERATURE_START, \
-    DEFAULT_N_SIMULATIONS, DEFAULT_C_PUCT
+    DEFAULT_N_SIMULATIONS, DEFAULT_C_PUCT, N_THREADS_MCTS
 from janggi.player import Player
 from janggi.utils import Color, DEVICE, get_symmetries, get_random_board
 
@@ -17,6 +17,10 @@ class RandomMCTSPlayer(Player):
         self._apply_latest_actions()
         action = self.mcts.choose_action(self.current_node, self.game, self)
         if self.print_info:
+            if self.color == Color.BLUE:
+                print("Current player: Blue")
+            else:
+                print("Current player: RED")
             print("Current Predicted Value:", self.current_node.predicted_value)
             print("Action Played:", action.to_uci_usi())
             print("Number Simulations:", self.current_node.total_N)
@@ -46,7 +50,7 @@ class RandomMCTSPlayer(Player):
         self.current_node = current_node or MCTSNode()
         self.last_action_index = 0
         self.think_when_other = think_when_other
-        self.thinking_thread = None
+        self.thinking_threads = None
         self.thinking_event = None
         self.print_info = print_info
 
@@ -61,15 +65,18 @@ class RandomMCTSPlayer(Player):
             self._apply_latest_actions()
             self.thinking_event = threading.Event()
             # Copy game
-            game = self.game.fake_copy()
-            self.thinking_thread = ThreadKeepThinking(self.mcts, self.current_node, game, self, self.thinking_event)
-            self.thinking_thread.start()
+            games = [self.game.fake_copy() for _ in range(N_THREADS_MCTS)]
+            self.thinking_threads = [ThreadKeepThinking(self.mcts, self.current_node, game, self, self.thinking_event)
+                                     for game in games]
+            for thread in self.thinking_threads:
+                thread.start()
 
     def stop_thinking(self):
-        if self.think_when_other and self.thinking_thread is not None:
+        if self.think_when_other and self.thinking_threads is not None:
             self.thinking_event.set()
-            self.thinking_thread.join()
-            self.thinking_thread = None
+            for thread in self.thinking_threads:
+                thread.join()
+            self.thinking_threads = None
 
 
 class NNPlayer(RandomMCTSPlayer):

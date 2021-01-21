@@ -80,10 +80,10 @@ def str2bool(v):
 
 parser.add_argument("--parallel_mcts", default=False, type=str2bool, required=False,
                     help="Whether or not to run a parallel MCTS")
-parser.add_argument("--n_threads_mcts", default=2, type=int, required=False,
+parser.add_argument("--n_threads_mcts", default=1, type=int, required=False,
                     help="Number of threads when running MCTS in parallel. Needs --parallel_mcts True")
 
-parser.add_argument("--n_processus", default=2, type=int, required=False,
+parser.add_argument("--n_processus", default=1, type=int, required=False,
                     help="Number of processus")
 
 parser.add_argument("--root_file_inference", default="./", type=str, required=False,

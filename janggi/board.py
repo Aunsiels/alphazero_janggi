@@ -9,7 +9,7 @@ from janggi.piece import Soldier, Cannon, General, Chariot, Elephant, Horse, Gua
 from janggi.utils import BOARD_HEIGHT, BOARD_WIDTH, Color
 
 
-UCI_USI_REPR = False
+UCI_USI_REPR = True
 
 
 class Board:
