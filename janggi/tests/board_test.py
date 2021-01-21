@@ -2,6 +2,7 @@ import unittest
 
 import numpy as np
 
+from ia.random_mcts_player import RandomMCTSPlayer
 from janggi.action import Action
 from janggi.board import Board, ActionCacheNode
 from janggi.game import Game
@@ -357,6 +358,22 @@ class TestBoardGwee(BoardTest):
         game.apply_action(action, invalidate_cache=False)
         game.reverse_action()
         print(game.get_current_actions())
+
+    def test_uci_usi5(self):
+        game = Game.from_uci_usi(
+            RandomMCTSPlayer(Color.BLUE, n_simulations=100),
+            RandomMCTSPlayer(Color.RED, n_simulations=100),
+            "position fen rbna1anbr/4k4/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/4K4/RBNA1ABNR w - - 0 1 moves a4b4 i10i9 "
+            "h1g3 e9d8 e4e5 d10d9 g4f4 e7f7 i1i2 d8e8 a1a4 i9h9 e2d2 e8d8 h3f3 h9e9 i2i1 a10a8 a4a1 e9d10 g3i2 i7i6 "
+            "b4b5 d10e9 f4g4 e9i9 d1e1 f7e7 c4d4 i9f9 d2d1 a8a10 e5f5 e7f7 c1d3 f9f8 e1e2 b8e8 i2g3 i6i5 d4e4 e8c8 "
+            "d3c1 d8e9 e2f2 f7e7 g4f4 c10b8 f5e5 f8d8 e5d5 c8c1 i4i5 h10f7 b5b6 d8f8 b6b7 e9d8 g3i4 g7g6 f1e1 c1c10 "
+            "a1a2 c7b7 i5h5 f8e8 d5e5 h8h1 i1i3 g10f8 f2f1 c10i10 a2a7 g6h6 e5e6 e8e9 d1e2 f8h7 a7b7 e7d7 b7b8 a1a1 "
+            "f3f7 a1a1 h5i5 a1a1 b8b5 a10a4 b3b7 e9d10 e6f6 f10e10 f6g6 d7d6 f4f5 a4c4 g6g7 h6i6 b5a5 h1h9 i3c3 i6i5 "
+            "f5e5 i10i4 c3b3 h9h1 e5d5 c4c2 e2d1 h7g9 f7i7 c2h2 b3d3 h2c2 a5a9 c2c8 d3h3 i4i6 h3h10 g9i10 a9c9 d6d5 "
+            "i7e7 d8e9 d1e2 i10h8 c9d9")
+        action = game.get_current_actions()[0]
+        game.apply_action(action, invalidate_cache=False)
+        game.reverse_action()
 
     def test_uci_usi3(self):
         uci_usi = "position fen rbna1anbr/4k4/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/4K4/RBNA1ABNR w - - 0 1 moves i4h4 " \

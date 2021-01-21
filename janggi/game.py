@@ -50,8 +50,12 @@ class Game:
         return game
 
     def to_uci_usi(self):
-        board_temp = Board(self.board.start_blue, self.board.start_red)
-        res_l = ["position", "fen", board_temp.to_fen(Color.BLUE, 0),
+        if self.starting_fen is None:
+            board_temp = Board(self.board.start_blue, self.board.start_red)
+            fen = board_temp.to_fen(Color.BLUE, 0)
+        else:
+            fen = self.starting_fen
+        res_l = ["position", "fen", fen,
                  "moves"]
         for action in self.actions:
             if action is None:
@@ -188,7 +192,10 @@ class Game:
 
     def to_json(self, mcts_node=None):
         result = dict()
-        result["initial_fen"] = Board(self.board.start_blue, self.board.start_red).to_fen(Color.BLUE, 0)
+        if self.starting_fen is None:
+            result["initial_fen"] = Board(self.board.start_blue, self.board.start_red).to_fen(Color.BLUE, 0)
+        else:
+            result["initial_fen"] = self.starting_fen
         winner = self.get_winner()
         if winner == Color.BLUE:
             result["winner"] = "BLUE"
@@ -216,4 +223,4 @@ class Game:
 
     def fake_copy(self):
         game_uci_usi = self.to_uci_usi()
-        return self.from_uci_usi(RandomPlayer(Color.BLUE), RandomPlayer(Color.RED), game_uci_usi)
+        return Game.from_uci_usi(RandomPlayer(Color.BLUE), RandomPlayer(Color.RED), game_uci_usi)

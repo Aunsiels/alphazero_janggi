@@ -29,7 +29,7 @@ class TestIA(unittest.TestCase):
         print(game.to_json(node))
 
     def test_single_action_random(self):
-        n_simulations = 16000
+        n_simulations = 800
         node = MCTSNode()
         player_blue = RandomMCTSPlayer(Color.BLUE, n_simulations=n_simulations, current_node=node)
         player_red = RandomMCTSPlayer(Color.RED, n_simulations=n_simulations, current_node=node)

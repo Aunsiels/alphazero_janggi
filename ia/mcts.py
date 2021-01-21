@@ -1,3 +1,4 @@
+import _queue
 import math
 import random
 import threading
@@ -7,6 +8,7 @@ from threading import Lock
 import torch
 import numpy as np
 
+from janggi.action import Action
 from janggi.parameters import DIRICHLET_ALPHA, DIRICHLET_EPSILON, PARALLEL_MCTS, N_THREADS_MCTS
 from janggi.utils import get_symmetries
 
@@ -103,6 +105,10 @@ class MCTS:
                 best_action = action
         # Best action is None when there is no legal move
 
+        if best_action is not None:
+            # We have to duplicate it in case of multithreading as apply_action modifies the action (eaten)
+            best_action = Action(best_action.x_from, best_action.y_from, best_action.x_to, best_action.y_to)
+
         game.apply_action(best_action, invalidate_cache=False)
         if best_action not in current_node.next_nodes:
             next_node = MCTSNode()
@@ -168,6 +174,9 @@ class ThreadRunSimulation(threading.Thread):
 
     def run(self) -> None:
         while not self.queue.empty():
-            self.queue.get_nowait()
+            try:
+                self.queue.get_nowait()
+            except _queue.Empty:
+                pass
             self.mcts.run_simulation(self.current_node, self.game, self.predictor)
 
