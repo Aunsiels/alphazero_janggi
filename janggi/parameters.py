@@ -94,6 +94,12 @@ parser.add_argument("--n_iterations", default=100, type=int, required=False,
 parser.add_argument("--n_episodes", default=2, type=int, required=False,
                     help="Number of episodes.")
 
+parser.add_argument("--train_on_all", default=False, type=str2bool, required=False,
+                    help="Train on all generated games, not only the n_last_games. Done by chunks of n_last_games.")
+
+parser.add_argument("--train_new_model", default=False, type=str2bool, required=False,
+                    help="Train a new model from scratch.")
+
 args = parser.parse_args()
 
 STOCKFISH_LOCATION = args.stockfish_location  # 'D:/Downloads/fairy-stockfish-largeboard_x86-64.exe'
@@ -142,3 +148,6 @@ BASE_ROOT_FILES = args.root_file_inference
 N_ITERATIONS = args.n_iterations
 N_PROCESSUS = args.n_processus
 N_EPISODES = args.n_episodes
+
+TRAIN_ON_ALL = args.train_on_all
+TRAIN_NEW_MODEL = args.train_new_model

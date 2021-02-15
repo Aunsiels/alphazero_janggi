@@ -8,14 +8,15 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.dataset import T_co
 
-from ia.janggi_network import JanggiLoss
+from ia.janggi_network import JanggiLoss, JanggiNetwork
 from ia.mcts import MCTSNode
 from ia.random_mcts_player import NNPlayer, fight, RandomMCTSPlayer
 from janggi.action import Action, get_none_action_policy
 from janggi.board import Board
 from janggi.game import Game
 from janggi.parameters import PROP_POPULATION_FOR_LEARNING, N_LAST_GAME_TO_CONSIDER, LEARNING_RATE, EPOCH_NUMBER, \
-    EPOCH_NUMBER_CONTINUOUS, WAINTING_TIME_IF_NO_EPISODE, N_FIGHTS, VICTORY_THRESHOLD, LOG_PRINT_FREQ, BATCH_SIZE
+    EPOCH_NUMBER_CONTINUOUS, WAINTING_TIME_IF_NO_EPISODE, N_FIGHTS, VICTORY_THRESHOLD, LOG_PRINT_FREQ, BATCH_SIZE, \
+    TRAIN_ON_ALL, TRAIN_NEW_MODEL
 from janggi.player import RandomPlayer
 from janggi.stockfish_player import StockfishPlayer
 from janggi.utils import Color, DEVICE, get_random_board, get_process_stockfish
@@ -62,9 +63,8 @@ def json_to_examples(line, examples, proba=None):
         is_blue = not is_blue
 
 
-def _raw_to_examples(line_iterator, limit=-1, proba=None):
+def _raw_to_examples(line_iterator, proba=None):
     game_number = 1
-    examples_all = []
     blue_starting = None
     red_starting = None
     fen_starting = None
@@ -75,17 +75,20 @@ def _raw_to_examples(line_iterator, limit=-1, proba=None):
     for line in line_iterator:
         line = line.strip()
         if "{" in line:
-            json_to_examples(line, examples_all, proba)
+            examples = []
+            json_to_examples(line, examples, proba)
             game_number += 1
-            if game_number >= limit:
-                break
+            for example in examples:
+                yield example
+            examples = []
         elif line == "":
             if is_blue:
                 winner = Color.RED
             else:
                 winner = Color.BLUE
             set_winner(examples, winner)
-            examples_all += examples
+            for example in examples:
+                yield example
             # End game
             blue_starting = None
             red_starting = None
@@ -95,8 +98,6 @@ def _raw_to_examples(line_iterator, limit=-1, proba=None):
             round = 0
             examples = []
             game_number += 1
-            if game_number >= limit:
-                break
         elif "/" in line:
             fen_starting = line
         elif fen_starting is None and blue_starting is None:
@@ -127,9 +128,8 @@ def _raw_to_examples(line_iterator, limit=-1, proba=None):
     else:
         winner = Color.BLUE
     set_winner(examples, winner)
-    examples_all += examples
-    print("READ", game_number, "games.")
-    return examples_all
+    for example in examples:
+        yield example
 
 
 def update_examples(board, examples, get_policy, is_blue, proba, round, winner=None):
@@ -171,7 +171,8 @@ class Trainer:
         self.model_saver = ModelSaver(dir_base)
         self.optimizer = torch.optim.SGD(self.predictor.parameters(), lr=LEARNING_RATE, momentum=0.9,
                                          weight_decay=0.0001)
-        self.model_saver.load_latest_model(self.predictor, self.optimizer)
+        if not TRAIN_NEW_MODEL:
+            self.model_saver.load_latest_model(self.predictor, self.optimizer)
 
     def run_episode(self):
         examples = []
@@ -232,7 +233,7 @@ class Trainer:
     def learn_supervised(self, training_file):
         print("Generate training data...")
         with open(training_file) as f:
-            examples_all = _raw_to_examples(f)
+            examples_all = list(_raw_to_examples(f))
         print("Start training")
         self.train_and_fight(examples_all)
 
@@ -248,12 +249,19 @@ class Trainer:
     def continuous_learning_once(self):
         # First, train
         for _ in range(EPOCH_NUMBER_CONTINUOUS):
-            training_set = _raw_to_examples(self.model_saver.all_episodes_raw_iterators(),
-                                            N_LAST_GAME_TO_CONSIDER,
-                                            PROP_POPULATION_FOR_LEARNING)
+            training_set = []
+            for example in _raw_to_examples(self.model_saver.all_episodes_raw_iterators(),
+                                            PROP_POPULATION_FOR_LEARNING):
+                training_set.append(example)
+                if len(training_set) > N_LAST_GAME_TO_CONSIDER:
+                    if not TRAIN_ON_ALL:
+                        break
+                    self.train(training_set)
+                    training_set = []
             self.train(training_set)
         # Then, fight!
-        old_model = copy.deepcopy(self.predictor)
+        # old_model = copy.deepcopy(self.predictor)
+        old_model = JanggiNetwork()
         self.model_saver.load_latest_model(old_model, None)
         old_model.to(DEVICE)
         victories = 0
@@ -293,6 +301,9 @@ class Trainer:
                 winner = fight(old_player, new_player, self.iter_max)
                 if winner == Color.RED:
                     victories += 1
+            if (victories + N_FIGHTS - i - 1) / N_FIGHTS * 100 < VICTORY_THRESHOLD:
+                # There is no more hope...
+                break
         victory_percentage = victories / N_FIGHTS * 100
         if victory_percentage > VICTORY_THRESHOLD:
             # Replace model
