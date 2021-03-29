@@ -11,9 +11,9 @@ player_blue = HumanPlayer(Color.BLUE)
 
 player_red = NNPlayer(Color.RED, n_simulations=DEFAULT_N_SIMULATIONS,
                       janggi_net=FilePredictor(),
-                      temperature_start=0.01,
+                      temperature_start=0.001,
                       temperature_threshold=30,
-                      temperature_end=0.01,
+                      temperature_end=0.001,
                       think_when_other=True, print_info=True)
 
 fight(player_blue, player_red, N_ITERATIONS, print_board=True)

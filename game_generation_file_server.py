@@ -7,13 +7,13 @@ from ia.utils import generate_games
 
 WITH_POOL = False
 
-N_POOLS = 4
-N_SIMULATIONS = 100
-ITER_MAX = 100
-N_EPISODES = N_POOLS
+N_POOLS = 64
+N_SIMULATIONS = 800
+ITER_MAX = 200
+N_EPISODES = N_POOLS * 2
 
 
-HOSTNAME = "localhost"
+HOSTNAME = "gpu3"
 PORT = 5000
 URL = "http://" + HOSTNAME + ":" + str(PORT) + "/predict"
 

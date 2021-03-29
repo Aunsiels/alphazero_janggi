@@ -28,7 +28,7 @@ class RandomMCTSPlayer(Player):
             best_actions = sorted(self.current_node.N.items(), key=lambda x: -x[1])[:10]
             for best_action, score in best_actions:
                 if self.current_node.total_N != 0:
-                    print(best_action.to_uci_usi(), score / self.current_node.total_N)
+                    print(best_action.to_uci_usi(), score / self.current_node.total_N, self.current_node.q[best_action], sep="\t")
         return action
 
     def _apply_latest_actions(self):

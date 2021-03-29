@@ -16,11 +16,13 @@ from janggi.utils import BOARD_HEIGHT, BOARD_WIDTH, DEVICE
 logger = mp.log_to_stderr()
 logger.setLevel(logging.INFO)
 
+BASE_DIR = "model"
+
 # Number of residual layers in the network
 N_RESIDUAL = 20
 
 # Number of parallel simulations
-N_POOLS = 25
+N_POOLS = 30
 # Number of simulation per round
 N_SIMULATIONS = 800
 # Number of round per game
@@ -128,7 +130,7 @@ def get_model():
     model = JanggiNetwork(N_RESIDUAL)
 
     def load_latest_model():
-        model_saver_temp = ModelSaver()
+        model_saver_temp = ModelSaver(BASE_DIR)
         model_saver_temp.load_latest_model(model)
 
     load_latest_model()
@@ -165,7 +167,7 @@ if __name__ == "__main__":
                 shr = create_shared_block()
                 lock = manager.Lock()
                 predictor = ProcessPredictor(shr.name, lock)
-                model_saver = ModelSaver()
+                model_saver = ModelSaver(BASE_DIR)
 
                 print("Start Predictor Process")
                 predictor_process = Process(target=predictor_loop, args=(shr.name, lock))

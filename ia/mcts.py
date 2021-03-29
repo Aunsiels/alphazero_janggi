@@ -148,15 +148,24 @@ class MCTS:
         items = list(current_node.N.items())
         total = current_node.total_N
         if game.round > self.temperature_threshold:
-            inv_temperature = 1 / self.temperature_end
+            inv_temperature = 1.0 / self.temperature_end
         else:
-            inv_temperature = 1 / self.temperature_start
+            inv_temperature = 1.0 / self.temperature_start
         if items:
-            proba = [(x[1] / total) ** inv_temperature for x in items]
-            total = sum(proba)
-            for i in range(len(proba)):
-                proba[i] /= total
-            action = random.choices([x[0] for x in items], proba)[0]
+            if inv_temperature > 100:
+                best_score = -1
+                best_action = None
+                for action, score in items:
+                    if score > best_score:
+                        best_score = score
+                        best_action = action
+                action = best_action
+            else:
+                proba = [(x[1] / total) ** inv_temperature for x in items]
+                total = sum(proba)
+                for i in range(len(proba)):
+                    proba[i] /= total
+                action = random.choices([x[0] for x in items], proba)[0]
         else:
             action = None
         return action

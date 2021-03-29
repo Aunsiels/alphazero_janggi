@@ -6,7 +6,6 @@ import time
 
 import torch
 from torch.utils.data import Dataset, DataLoader
-from torch.utils.data.dataset import T_co
 
 from ia.janggi_network import JanggiLoss, JanggiNetwork
 from ia.mcts import MCTSNode
@@ -173,6 +172,8 @@ class Trainer:
                                          weight_decay=0.0001)
         if not TRAIN_NEW_MODEL:
             self.model_saver.load_latest_model(self.predictor, self.optimizer)
+        self.old_model = JanggiNetwork(20)
+        self.old_model.to(DEVICE)
 
     def run_episode(self):
         examples = []
@@ -238,6 +239,8 @@ class Trainer:
         self.train_and_fight(examples_all)
 
     def continuous_learning(self):
+        self.model_saver.load_latest_model(self.old_model, None)
+        self.old_model.to(DEVICE)
         while True:
             if self.model_saver.has_last_episode_raw():
                 print("Start new learning")
@@ -261,9 +264,8 @@ class Trainer:
             self.train(training_set)
         # Then, fight!
         # old_model = copy.deepcopy(self.predictor)
-        old_model = JanggiNetwork()
-        self.model_saver.load_latest_model(old_model, None)
-        old_model.to(DEVICE)
+        self.model_saver.load_latest_model(self.old_model, None)
+        self.old_model.to(DEVICE)
         victories = 0
         print("Start the fights!")
         for i in range(N_FIGHTS):
@@ -277,7 +279,7 @@ class Trainer:
                                       temperature_end=0.01)
                 old_player = NNPlayer(Color.RED,
                                       n_simulations=self.n_simulations,
-                                      janggi_net=old_model,
+                                      janggi_net=self.old_model,
                                       temperature_start=0.01,
                                       temperature_threshold=30,
                                       temperature_end=0.01)
@@ -294,7 +296,7 @@ class Trainer:
                                       temperature_end=0.01)
                 old_player = NNPlayer(Color.BLUE,
                                       n_simulations=self.n_simulations,
-                                      janggi_net=old_model,
+                                      janggi_net=self.old_model,
                                       temperature_start=0.01,
                                       temperature_threshold=30,
                                       temperature_end=0.01)
@@ -371,7 +373,7 @@ class Trainer:
 
 class ExampleDataset(Dataset):
 
-    def __getitem__(self, index) -> T_co:
+    def __getitem__(self, index):
         return self.examples[index]
 
     def __init__(self, examples):
@@ -503,6 +505,8 @@ class ModelSaver:
         filenames = os.listdir(self.episode_raw_path)
         mini = self.get_lowest_index_episode_raw()
         filenames = sorted(filenames, key=lambda filename: get_order(filename, mini))
+        if TRAIN_ON_ALL:
+            filenames = filenames[::-1]
         for filename in filenames:
             if ONLY_NN_GENERATED:
                 idx = int(filename[len("episode_"):])

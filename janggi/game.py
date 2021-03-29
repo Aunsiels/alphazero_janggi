@@ -68,6 +68,7 @@ class Game:
         begin_game_time = time.time()
         if print_board:
             print(repr(self.board))
+            print(self.board.to_fen(Color.BLUE, 0))
         while not self.is_finished(iter_max):
             # print(self.round, self.current_player)
             # begin_time = time.time()
