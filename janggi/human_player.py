@@ -7,11 +7,15 @@ from janggi.utils import Color
 class HumanPlayer(Player):
 
     def play_action(self):
+        legal_actions = self.game.get_current_actions()
         while True:
             read_data = input("Enter your action:")
             try:
                 action = Action.from_uci_usi(read_data.strip())
-                break
+                if action in legal_actions:
+                    break
+                else:
+                    print("Illegal action")
             except IndexError:
                 print("Invalid Action")
         return action
